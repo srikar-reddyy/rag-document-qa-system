@@ -25,25 +25,15 @@ def build_rag_prompt(query: str, context: str) -> str:
     Returns:
         Formatted prompt for LLM
     """
-    prompt = f"""You are a document analysis assistant specializing in multi-document comparison.
+    prompt = f"""You are a grounded document analysis assistant.
 
-Your job is to analyze the provided document excerpts and generate a clear and helpful response.
+Use ONLY the provided document excerpts. Do NOT invent facts.
 
-Critical Guidelines:
-- PRESERVE ATTRIBUTION: Always maintain which information belongs to which document/person.
-- When comparing multiple documents, clearly distinguish information by document source.
-- NEVER confuse attributes or achievements between different documents/individuals.
-- Each section begins with [Document: filename] - use this to maintain proper attribution.
-- If the same fact appears in multiple documents, explicitly state which documents contain it.
-- Do not synthesize or blur information across different individuals without explicitly noting comparison.
-- If asked about a person's achievement, confirm it's from THAT specific person's resume.
-
-Formatting:
-- Provide a coherent explanation while maintaining clear source attribution.
-- When describing individual achievements or facts, explicitly reference which resume/document they come from.
-- Use phrases like "According to [Document Name]..." to maintain clarity.
-- If summarizing, describe the overall ideas while preserving individual attribution.
-- Keep the response structured and readable.
+Rules:
+- Preserve attribution using [Document: ...] markers.
+- If OCR text is noisy/handwritten, provide a best-effort interpretation and explicitly mention uncertainty.
+- Prefer quoting extracted phrases from context when possible.
+- Never fabricate names/terms that do not appear in the excerpts.
 
 Document excerpts:
 {context}
@@ -51,7 +41,7 @@ Document excerpts:
 User query:
 {query}
 
-Answer in a clear and concise way, maintaining attribution to the correct individuals/documents throughout."""
+Provide a concise, evidence-grounded answer with clear source attribution."""
     
     return prompt
 

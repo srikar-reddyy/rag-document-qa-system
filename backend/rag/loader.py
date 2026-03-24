@@ -21,6 +21,11 @@ except ImportError:
     cv2 = None
 
 try:
+    import easyocr
+except ImportError:
+    easyocr = None
+
+try:
     from docx import Document as DocxDocument
 except ImportError:
     DocxDocument = None
@@ -39,6 +44,7 @@ logger = logging.getLogger(__name__)
 
 MIN_TEXT_THRESHOLD = 50
 MIN_IMAGE_TEXT_THRESHOLD = 20
+_easyocr_reader = None
 
 
 def run_ocr(pdf_path: str, lang: str = "eng") -> str:
@@ -82,6 +88,94 @@ def preprocess_image(image_path: str) -> Image.Image:
     return Image.fromarray(enhanced)
 
 
+def run_tesseract(image_path: str, lang: str = "eng") -> str:
+    """
+    Run Tesseract OCR with preprocessing and tuned page segmentation.
+    """
+    if pytesseract is None:
+        return ""
+
+    if cv2 is not None:
+        img = cv2.imread(image_path)
+        if img is not None:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # Adaptive thresholding improves handwriting/uneven lighting OCR
+            thresh = cv2.adaptiveThreshold(
+                gray,
+                255,
+                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                cv2.THRESH_BINARY,
+                31,
+                11,
+            )
+            text = pytesseract.image_to_string(thresh, lang=lang, config="--oem 3 --psm 6") or ""
+            return text
+
+    # PIL fallback
+    preprocessed = preprocess_image(image_path)
+    return pytesseract.image_to_string(preprocessed, lang=lang, config="--psm 6") or ""
+
+
+def get_easyocr_reader():
+    """
+    Lazily initialize EasyOCR reader to avoid startup penalty.
+    """
+    global _easyocr_reader
+    if _easyocr_reader is None:
+        if easyocr is None:
+            raise RuntimeError("easyocr not installed")
+        _easyocr_reader = easyocr.Reader(['en'], gpu=False)
+    return _easyocr_reader
+
+
+def run_easyocr(image_path: str) -> str:
+    """
+    Run EasyOCR (better for handwriting/complex text) and return merged text.
+    """
+    try:
+        reader = get_easyocr_reader()
+        results = reader.readtext(image_path)
+        return " ".join([res[1] for res in results if len(res) > 1 and res[1]])
+    except Exception as e:
+        logger.warning(f"EasyOCR failed: {str(e)}")
+        return ""
+
+
+def extract_text_from_image(image_path: str) -> Dict[str, str]:
+    """
+    Extract text from image using multi-engine OCR.
+
+    Strategy:
+    1) Run Tesseract OCR
+    2) Run EasyOCR
+    3) Combine both outputs for better coverage (printed + handwriting)
+    """
+    text_tesseract = run_tesseract(image_path)
+    text_easyocr = run_easyocr(image_path)
+
+    combined_parts = []
+    if text_tesseract and text_tesseract.strip():
+        combined_parts.append(text_tesseract.strip())
+    if text_easyocr and text_easyocr.strip():
+        combined_parts.append(text_easyocr.strip())
+
+    combined_text = "\n".join(combined_parts)
+
+    if text_tesseract.strip() and text_easyocr.strip():
+        engine = "tesseract+easyocr"
+    elif text_tesseract.strip():
+        engine = "tesseract"
+    elif text_easyocr.strip():
+        engine = "easyocr"
+    else:
+        engine = "none"
+
+    return {
+        "text": combined_text,
+        "engine": engine
+    }
+
+
 def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dict[str, any]]:
     """
     Extract text from an image document using OCR and return loader-compatible structure.
@@ -90,38 +184,27 @@ def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dic
         raise Exception("pytesseract is not installed. Please install OCR dependencies.")
 
     try:
-        ocr_warning = None
+        ocr_warning = ""
 
-        # Pass 1: OCR on preprocessed image
-        preprocessed = preprocess_image(file_path)
-        text = pytesseract.image_to_string(preprocessed, lang=lang) or ""
+        # OCR pipeline: Tesseract -> EasyOCR
+        ocr_result = extract_text_from_image(file_path)
+        text = ocr_result["text"]
+        ocr_engine = ocr_result["engine"]
 
-        # Pass 2: fallback OCR on original image with tuned config (better for screenshots)
-        if not text or len(text.strip()) < MIN_IMAGE_TEXT_THRESHOLD:
-            try:
-                original_img = Image.open(file_path)
-                alt_text = pytesseract.image_to_string(
-                    original_img,
-                    lang=lang,
-                    config="--oem 3 --psm 6"
-                ) or ""
-                if len(alt_text.strip()) > len(text.strip()):
-                    text = alt_text
-            except Exception:
-                pass
+        has_visual_context = False
 
-        # If still weak/empty, keep upload successful but mark warning
-        if not text or len(text.strip()) < MIN_IMAGE_TEXT_THRESHOLD:
-            ocr_warning = "No readable text found in image"
-            text = (
-                f"IMAGE_DOCUMENT: {file_name}\n"
-                "OCR could not extract enough readable text from this image."
-            )
+        # Soft fallback only when OCR produced no usable text
+        if not text or not text.strip():
+            ocr_warning = "OCR empty; using soft fallback text"
+            text = "Handwritten content detected but partially extracted."
 
-        entity_data = extract_entities(text)
+        # Always keep extracted text available for downstream LLM reasoning
+        final_text = text.strip()
+
+        entity_data = extract_entities(final_text)
         primary_entity = entity_data["primary_entity"]
         entity_header = f"SUBJECT: {primary_entity}\n"
-        enriched_text = entity_header + "\n" + text
+        enriched_text = "Image Content:\n" + entity_header + "\n" + final_text
 
         if ocr_warning:
             logger.warning(f"🖼️ {file_name} | OCR warning: {ocr_warning}")
@@ -137,6 +220,8 @@ def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dic
                 "file_type": "image",
                 "ocr_used": True,
                 "ocr_warning": ocr_warning or "",
+                "ocr_engine": ocr_engine,
+                "has_visual_context": has_visual_context,
                 "primary_entity": primary_entity,
                 "entities": entity_data["entities"],
                 "entity_persons": entity_data["entities"]["persons"],
