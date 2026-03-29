@@ -6,7 +6,39 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Loader2, History, Trash2 } from 'lucide-react';
 import MessageBubble from './MessageBubble';
-import { sendChatMessage, clearChatHistory } from '../services/api';
+import { sendChatMessageStream, clearChatHistory } from '../services/api';
+
+const looksLikeIncompleteListTail = (text) => {
+  if (!text) return false;
+  const tail = text.split('\n').pop()?.trim() || '';
+  if (!tail) return false;
+  if (!/^(?:[-*]|\d+\.)\s+/.test(tail)) return false;
+  return !/[.!?]\s*$/.test(tail);
+};
+
+const getFlushBoundary = (buffer) => {
+  if (!buffer) return -1;
+
+  const lastNewline = buffer.lastIndexOf('\n');
+  let sentenceEnd = -1;
+  const regex = /[.!?](?=\s|$)/g;
+  let match = regex.exec(buffer);
+  while (match) {
+    sentenceEnd = match.index + 1;
+    match = regex.exec(buffer);
+  }
+
+  let boundary = Math.max(lastNewline >= 0 ? lastNewline + 1 : -1, sentenceEnd);
+  if (boundary <= 0) return -1;
+
+  const prefix = buffer.slice(0, boundary);
+  if (looksLikeIncompleteListTail(prefix)) {
+    const prevNewline = prefix.slice(0, -1).lastIndexOf('\n');
+    boundary = prevNewline >= 0 ? prevNewline + 1 : -1;
+  }
+
+  return boundary;
+};
 
 const ChatWindow = ({ initialMessages = [], isLoadingState = false, selectedDocumentIds = [], onHighlightClick }) => {
   const [messages, setMessages] = useState([]);
@@ -14,6 +46,7 @@ const ChatWindow = ({ initialMessages = [], isLoadingState = false, selectedDocu
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const streamBufferRef = useRef('');
 
   // Load initial messages on mount
   useEffect(() => {
@@ -60,25 +93,69 @@ const ChatWindow = ({ initialMessages = [], isLoadingState = false, selectedDocu
 
     // Add user message
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    // Add placeholder assistant message for progressive streaming
+    setMessages(prev => [...prev, { role: 'assistant', content: '', sources: [], highlights: [], streaming: true }]);
+    streamBufferRef.current = '';
     setLoading(true);
 
     try {
-      // Call RAG endpoint with selected documents
-      const response = await sendChatMessage(userMessage, selectedDocumentIds);
-      const answer = response?.answer || response?.response || 'No answer generated.';
-      
-      // Add assistant response
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: answer,
-        sources: response?.sources || [],
-        highlights: response?.highlights || [],
-      }]);
+      // Call streaming endpoint and update message progressively
+      const finalText = await sendChatMessageStream(userMessage, selectedDocumentIds, (chunk) => {
+        streamBufferRef.current += chunk;
+        let boundary = getFlushBoundary(streamBufferRef.current);
+        if (boundary <= 0) return;
+
+        const flushText = streamBufferRef.current.slice(0, boundary);
+        streamBufferRef.current = streamBufferRef.current.slice(boundary);
+
+        setMessages(prev => {
+          const next = [...prev];
+          for (let i = next.length - 1; i >= 0; i -= 1) {
+            if (next[i]?.role === 'assistant' && next[i]?.streaming) {
+              next[i] = {
+                ...next[i],
+                content: `${next[i].content || ''}${flushText}`,
+              };
+              break;
+            }
+          }
+          return next;
+        });
+      });
+
+      // Mark stream complete
+      setMessages(prev => {
+        const next = [...prev];
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          if (next[i]?.role === 'assistant' && next[i]?.streaming) {
+            const remaining = streamBufferRef.current;
+            streamBufferRef.current = '';
+            next[i] = {
+              ...next[i],
+              content: finalText || `${next[i].content || ''}${remaining}` || 'No answer generated.',
+              streaming: false,
+            };
+            break;
+          }
+        }
+        return next;
+      });
     } catch (error) {
-      setMessages(prev => [
-        ...prev,
-        { role: 'error', content: `Error: ${error.message}` }
-      ]);
+      setMessages(prev => {
+        const next = [...prev];
+        let replaced = false;
+        for (let i = next.length - 1; i >= 0; i -= 1) {
+          if (next[i]?.role === 'assistant' && next[i]?.streaming) {
+            next[i] = { role: 'error', content: `Error: ${error.message}` };
+            replaced = true;
+            break;
+          }
+        }
+        if (!replaced) {
+          next.push({ role: 'error', content: `Error: ${error.message}` });
+        }
+        return next;
+      });
     } finally {
       setLoading(false);
     }

@@ -3,14 +3,84 @@ Chat endpoint for RAG-powered question answering.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse
 from schemas.chat import ChatRequest, ChatResponse
 from rag.pipeline import rag_query, classify_query, run_count_pipeline
 from rag.vectordb import get_all_document_metadata
+from rag.vectordb import get_document_chunks
+from rag.retriever import retrieve, extract_sources
+from rag.generator import generate_answer_stream
 from services import get_chat_service
 import logging
+import re
+import asyncio
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
+
+
+def _extract_requested_point_count(query: str) -> int | None:
+    q = (query or "").lower()
+    patterns = [
+        r"\b(?:top|list|give|provide|share|tell)\s+(\d{1,2})\b",
+        r"\b(\d{1,2})\s+(?:key\s+)?(?:points?|items?|reasons?|insights?|takeaways?|facts?|differences?)\b",
+    ]
+    for pattern in patterns:
+        m = re.search(pattern, q)
+        if m:
+            try:
+                n = int(m.group(1))
+                if 1 <= n <= 20:
+                    return n
+            except Exception:
+                continue
+    return None
+
+
+def _looks_like_incomplete_list_tail(text: str) -> bool:
+    """
+    Detect if the last visible line is a likely incomplete list item.
+    """
+    if not text:
+        return False
+
+    tail = text.split("\n")[-1].strip()
+    if not tail:
+        return False
+
+    if not re.match(r"^(?:[-*]|\d+\.)\s+", tail):
+        return False
+
+    # If list tail has no terminating punctuation and no newline yet, keep buffering.
+    return not re.search(r"[.!?]\s*$", tail)
+
+
+def _find_flush_boundary(buffer: str) -> int:
+    """
+    Find safe flush boundary index (exclusive): newline or sentence end.
+    Returns -1 when no safe boundary exists yet.
+    """
+    if not buffer:
+        return -1
+
+    last_newline = buffer.rfind("\n")
+    sentence_end = -1
+    for m in re.finditer(r"[.!?](?=\s|$)", buffer):
+        sentence_end = m.end()
+
+    boundary = max(last_newline + 1 if last_newline >= 0 else -1, sentence_end)
+    if boundary <= 0:
+        return -1
+
+    prefix = buffer[:boundary]
+    if _looks_like_incomplete_list_tail(prefix):
+        # If the flush candidate still ends with incomplete list item, back off to previous newline.
+        prev_newline = prefix[:-1].rfind("\n")
+        if prev_newline >= 0:
+            return prev_newline + 1
+        return -1
+
+    return boundary
 
 
 @router.get("/history")
@@ -111,9 +181,11 @@ async def chat(request: ChatRequest):
                 )
             
             # Execute RAG pipeline with document filtering
+            requested_points = _extract_requested_point_count(request.message)
+            adaptive_top_k = max(5, min(14, (requested_points + 4) if requested_points else 5))
             result = await rag_query(
                 request.message, 
-                top_k=5,
+                top_k=adaptive_top_k,
                 selected_document_ids=request.selected_documents
             )
         
@@ -147,3 +219,123 @@ async def chat(request: ChatRequest):
         error_msg = f"Unexpected error in RAG query: {str(e)}"
         logger.error(error_msg)
         raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.post("/stream")
+async def chat_stream(request: ChatRequest):
+    """
+    Stream chat responses progressively for real-time UX.
+    """
+    chat_service = get_chat_service()
+    logger.info(f"Streaming chat message: {request.message[:100]}...")
+    logger.info(f"Selected documents: {request.selected_documents}")
+
+    query_type = classify_query(request.message)
+    chat_service.add_message("user", request.message)
+
+    async def stream_generator():
+        answer_parts = []
+        sources = []
+        highlights = []
+        stream_buffer = ""
+
+        async def buffered_emit(text: str):
+            nonlocal stream_buffer
+            stream_buffer += text
+
+            while True:
+                boundary = _find_flush_boundary(stream_buffer)
+                if boundary <= 0:
+                    break
+
+                out = stream_buffer[:boundary]
+                stream_buffer = stream_buffer[boundary:]
+                if out:
+                    answer_parts.append(out)
+                    yield out
+                    await asyncio.sleep(0.015)
+
+        async def flush_remaining():
+            nonlocal stream_buffer
+            if stream_buffer:
+                answer_parts.append(stream_buffer)
+                yield stream_buffer
+                stream_buffer = ""
+
+        try:
+            # Count queries: deterministic response, streamed character-by-character
+            if query_type == "count":
+                metadata_list = get_all_document_metadata()
+                available_docs = [m["file_name"] for m in metadata_list]
+                if not available_docs:
+                    text = "No documents available to count words in"
+                    async for out in buffered_emit(text):
+                        yield out
+                    async for out in flush_remaining():
+                        yield out
+                    return
+
+                result = run_count_pipeline(request.message, available_docs)
+                text = result.get("answer", "No answer generated.")
+                sources = result.get("sources", [])
+                async for out in buffered_emit(text):
+                    yield out
+                async for out in flush_remaining():
+                    yield out
+                return
+
+            # Non-count queries require document selection
+            if not request.selected_documents:
+                text = "Please select at least one document to query."
+                async for out in buffered_emit(text):
+                    yield out
+                async for out in flush_remaining():
+                    yield out
+                return
+
+            # Retrieval (summary gets broad document chunks, others use semantic retrieval)
+            if query_type == "summary":
+                retrieved_chunks = get_document_chunks(
+                    request.selected_documents,
+                    max_chunks_per_document=25,
+                )
+            else:
+                requested_points = _extract_requested_point_count(request.message)
+                adaptive_top_k = max(4, min(14, (requested_points + 3) if requested_points else 4))
+                adaptive_broad_k = max(15, adaptive_top_k * 4)
+                retrieved_chunks = retrieve(
+                    request.message,
+                    top_k=adaptive_top_k,
+                    broad_k=adaptive_broad_k,
+                    selected_document_ids=request.selected_documents,
+                )
+
+            if not retrieved_chunks:
+                text = "No relevant information found in uploaded documents."
+                async for out in buffered_emit(text):
+                    yield out
+                async for out in flush_remaining():
+                    yield out
+                return
+
+            sources = extract_sources(retrieved_chunks)
+
+            async for token in generate_answer_stream(request.message, retrieved_chunks):
+                async for out in buffered_emit(token):
+                    yield out
+
+            async for out in flush_remaining():
+                yield out
+
+        except Exception as e:
+            logger.error(f"Streaming query failed: {str(e)}")
+            error_text = "\n\n[Error: unable to stream response]"
+            async for out in buffered_emit(error_text):
+                yield out
+            async for out in flush_remaining():
+                yield out
+        finally:
+            final_answer = "".join(answer_parts).strip() or "No answer generated."
+            chat_service.add_message("assistant", final_answer, sources, highlights)
+
+    return StreamingResponse(stream_generator(), media_type="text/plain")

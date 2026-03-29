@@ -2,503 +2,1089 @@
   "messages": [
     {
       "role": "user",
-      "content": "name of student",
-      "timestamp": "2026-03-29T12:39:33.393923"
+      "content": "give about important 10 points in this book",
+      "timestamp": "2026-03-29T14:11:56.582033"
     },
     {
       "role": "assistant",
-      "content": "The name of the student is GOPIDI RISHITH REDDY, S/O GOPIDI RAMANA REDDY. This information is from the Hall Ticket (3).pdf document excerpt.",
-      "timestamp": "2026-03-29T12:39:48.454677",
+      "content": "1. **Six Main Lessons**\n   The book contains six main lessons that Robert Kiyosaki learned over 30 years, designed to guide readers towards greater wealth and financial freedom.\n\n2. **Target Audience**\n   This book is aimed at individuals ready to change their financial paths, particularly those considering moving from the E and S quadrants to the B and I quadrants.\n\n3. **Rich Dad\u2019s Advice**\n   Kiyosaki emphasizes the importance of following his rich dad's advice, which includes understanding the differences between the four quadrants of the CASHFLOW Quadrant.\n\n4. **Financial Intelligence**\n   Financial intelligence is crucial for success on the right side of the CASHFLOW Quadrant, emphasizing the need to control the direction of one's cash flow.\n\n5. **Education and Influence**\n   The book highlights the role of education and influence in shaping one's financial path, noting that these factors can either lead to financial security or poverty.\n\n6. **Corporate Structure**\n   Kiyosaki explains the historical development and benefits of corporate structures, which allowed the rich to limit their risks while pursuing financial gains.\n\n7. **Personal Change**\n   The second part of the book focuses on personal transformation, encouraging readers to become the type of person capable of achieving financial freedom.\n\n8. **Information Age Opportunities**\n   With the advent of the Information Age, the book suggests that individuals with skills in business and investment (B and I quadrants) will have more opportunities for financial success.\n\n9. **Financial Freedom**\n   The ultimate goal of the book is to help readers achieve financial freedom, moving beyond job security to build their own pipelines for cash flow.\n\n10. **Historical Context**\n    Based on limited available context, the book provides historical insights into the evolution of taxation and its impact on the middle and lower classes.",
+      "timestamp": "2026-03-29T14:12:04.957237",
       "sources": [
         {
-          "doc": "HallTicket (3).pdf",
-          "file": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "None of the sentences in the provided text are directly relevant to the query about the name of the student.",
-          "score": 0.5276084327167978,
-          "query_similarity": 0.6253806188990731,
-          "answer_similarity": 0.48784533290244536,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
         },
         {
-          "doc": "HallTicket (3).pdf",
-          "file": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "examination will automatically lead to disqualification.",
-          "score": 0.3188943076773962,
-          "query_similarity": 0.3188943076773962,
-          "answer_similarity": 0.0,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "None of the sentences in the provided text are directly relevant to the query about the name of the student.",
-          "score": 0.5276084327167978,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
         },
         {
-          "doc_name": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "examination will automatically lead to disqualification.",
-          "score": 0.3188943076773962,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 205
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 212
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 176
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 83
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 7
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 116
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 189
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 85
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 16
         }
       ]
     },
     {
       "role": "user",
-      "content": "give summary of document",
-      "timestamp": "2026-03-29T12:39:55.939870"
+      "content": "give about important 10 points in this book",
+      "timestamp": "2026-03-29T14:12:14.483902"
     },
     {
       "role": "assistant",
-      "content": "The document is a Hall Ticket for a Sessional Examination-I, dated for March 2026. It includes the following key information:\n\n- **Exam Timing**: The examination will take place from 2:00 PM to 4:00 PM.\n- **Candidate Details**: GOPIDI RISHITH REDDY, son of GOPIDI RAMANA REDDY, and GOPIDI MOUNIKA.\n- **Branch Name**: UG-AID.\n- **Regulation**: UG-R22.\n- **Examination Schedule**:\n  - 02-03-2026: ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY\n  - 04-03-2026: WEB TECHNOLOGIES LABORATORY\n  - 05-03-2026: PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR\n  - 06-03-2026: ENSEMBLE MODELS AND FEATURE ENGINEERING\n  - 07-03-2026: 3D PRINTING AND DESIGN\n  - 09-03-2026: ANCIENT WISDOM\n\nThe document also provides instructions for candidates, including:\n- Entering the examination hall with a proper hall-ticket.\n- Arriving at least 30 minutes before the exam starts.\n- Not entering or leaving the hall after the exam begins.\n- Not bringing any printed/written material into the hall except the hall-ticket.\n- Carrying scientific calculators, pens, pencils, and other allowed instruments.\n- Not bringing books, loose papers, log tables, mobile phones, smartwatches, electronics gadgets, or wallets into the hall.\n- Following examination regulations to avoid malpractice.\n- Checking all pages in the answer booklet and writing answers only within the given booklet.\n- Remaining seated until the number of answer booklets matches the number of candidates.\n- Verifying all particulars on the hall ticket and cross-checking information on the Eduprime Portal.\n\n[Document: HallTicket (3).pdf]",
-      "timestamp": "2026-03-29T12:40:19.157955",
+      "content": "1. **Six Main Lessons**\n   The book contains six main lessons, repeated over 30 years, designed to guide readers towards greater wealth and financial freedom.\n\n2. **CASHFLOW Quadrant**\n   The CASHFLOW Quadrant divides people into four categories based on their sources of income, emphasizing the importance of moving from employee (E) and self-employed (S) to business owner (B) and investor (I).\n\n3. **Financial Intelligence**\n   Financial intelligence is crucial for success on the right side of the CASHFLOW Quadrant, requiring the ability to control the direction of cash flow.\n\n4. **Robin Hood Fantasy**\n   The book critiques the Robin Hood fantasy, explaining how it has led to heavy taxation of the middle class and why the rich are not significantly taxed.\n\n5. **Education and Influence**\n   The book highlights the role of education and influence in shaping one's financial path, noting that financial intelligence is more important than formal education.\n\n6. **Personal Change**\n   The second part of the book focuses on personal change, emphasizing the need to become someone capable of making decisions that lead to financial freedom.\n\n7. **Information Age Opportunities**\n   In the Information Age, individuals with skills in business ownership (B) and investing (I) can identify and seize new financial opportunities.\n\n8. **Rich Dad\u2019s Secrets**\n   The book shares secrets from the author's rich father, including the use of corporations to limit risk and the importance of financial education.\n\n9. **Choosing Your Path**\n   Readers are encouraged to choose paths that move beyond job security and build their own pipelines to financial freedom.\n\n10. **Historical Context**\n    Based on limited available context, the book provides historical perspectives on taxes and the evolution of corporate structures, which have influenced modern financial systems.",
+      "timestamp": "2026-03-29T14:12:21.783816",
       "sources": [
         {
-          "doc": "HallTicket (3).pdf",
-          "file": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "All answers are to be written within the given booklet only and no additional sheets will be provided.",
-          "score": 1.0,
-          "query_similarity": 0.3270121937009005,
-          "answer_similarity": 0.31050890211102894,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
         },
         {
-          "doc": "HallTicket (3).pdf",
-          "file": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "SUBJECT: the Invigilator Hall Ticket for Sessional Examination-I EXAM TIMING : AN : 2.00 PM - 4:00 PM INSTRUCTIONS TO THE CANDIDATE Month &Year of Exam : Mar-2026 HT NO : 23071A7225 - GOPIDI RISHITH REDDY S/O GOPIDI RAMANA REDDY - GOPIDI MOUNIKA Branch Name : UG-AID Regulation : UG-R22 S.No Year Sem Subject Code Sub Name Date of Exam Signature of the Invigilator 1 III II 22HS2EN301 ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY 2 III II 22PC2CS302 WEB TECHNOLOGIES LABORATORY 3 III II 22PC2DS303 BIG DATA COMPUTING TECHNOLOGIES LABORATORY 4 III II 22PW4AD301 INTERNSHIP 5 III II 22PC1DS303 BIG DATA COMPUTING TECHNOLOGIES 02-03-2026 AN 6 III II 22PC1CS302 WEB TECHNOLOGIES 04-03-2026 AN 7 III II 22HS1MG301 PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR 05-03-2026 AN 8 III II 22PE1DS302 ENSEMBLE MODELS AND FEATURE ENGINEERING 06-03-2026 AN",
-          "score": 1.0,
-          "query_similarity": 0.0,
-          "answer_similarity": 0.0,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "All answers are to be written within the given booklet only and no additional sheets will be provided.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
         },
         {
-          "doc_name": "HallTicket (3).pdf",
-          "page": 1,
-          "text": "SUBJECT: the Invigilator Hall Ticket for Sessional Examination-I EXAM TIMING : AN : 2.00 PM - 4:00 PM INSTRUCTIONS TO THE CANDIDATE Month &Year of Exam : Mar-2026 HT NO : 23071A7225 - GOPIDI RISHITH REDDY S/O GOPIDI RAMANA REDDY - GOPIDI MOUNIKA Branch Name : UG-AID Regulation : UG-R22 S.No Year Sem Subject Code Sub Name Date of Exam Signature of the Invigilator 1 III II 22HS2EN301 ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY 2 III II 22PC2CS302 WEB TECHNOLOGIES LABORATORY 3 III II 22PC2DS303 BIG DATA COMPUTING TECHNOLOGIES LABORATORY 4 III II 22PW4AD301 INTERNSHIP 5 III II 22PC1DS303 BIG DATA COMPUTING TECHNOLOGIES 02-03-2026 AN 6 III II 22PC1CS302 WEB TECHNOLOGIES 04-03-2026 AN 7 III II 22HS1MG301 PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR 05-03-2026 AN 8 III II 22PE1DS302 ENSEMBLE MODELS AND FEATURE ENGINEERING 06-03-2026 AN",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 205
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 212
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 176
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 83
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 7
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 116
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 189
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 85
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 16
         }
       ]
     },
     {
       "role": "user",
-      "content": "give summary about this book",
-      "timestamp": "2026-03-29T12:41:19.952311"
+      "content": "give summary",
+      "timestamp": "2026-03-29T14:12:33.439103"
     },
     {
       "role": "assistant",
-      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki is a book that explores financial education and the differences between the financial philosophies of Kiyosaki's two fathers: his biological father (the \"poor dad\") and his friend's father (the \"rich dad\"). The book emphasizes the importance of financial literacy and understanding the difference between assets and liabilities. Key themes include:\n\n1. **Understanding Assets vs. Liabilities**: The rich dad teaches that assets generate income, whereas liabilities drain it. Examples include real estate as an asset versus a mortgage as a liability.\n\n2. **Financial Intelligence**: Kiyosaki argues that financial intelligence is crucial for financial success, involving skills such as accounting, investing, understanding markets, and knowing the law.\n\n3. **Education and Learning**: The book highlights the importance of continuous learning and acquiring knowledge beyond traditional schooling. It encourages readers to learn \"a little about a lot\" rather than specializing deeply in one field.\n\n4. **Accounting and Investing**: Basic financial literacy, including reading financial statements and understanding investments, is emphasized as essential for building wealth.\n\n5. **Failure and Risk-Taking**: The rich dad encourages embracing failure as a learning opportunity, contrasting this with the fear-driven mindset of the poor and middle class.\n\n6. **Real Estate Investment**: Real estate is presented as a powerful tool for building wealth, with strategies for finding undervalued properties and managing them effectively.\n\n7. **Cultural and Economic Context**: The book discusses broader economic issues, such as the impact of government policies on financial outcomes and the need for financial education to navigate these challenges.\n\nKiyosaki uses personal anecdotes and examples to illustrate these points, drawing from his experiences growing up with two different financial mindsets. The book aims to inspire readers to rethink their approach to money and financial planning.\n\n[Source: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
-      "timestamp": "2026-03-29T12:43:18.426198",
+      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki explores the differences in financial philosophies between his two dads: a poor dad who emphasized traditional education and job security, and a rich dad who focused on business systems and investing. The rich dad advocated for managing risk, developing financial intelligence, and using assets to generate passive income. Kiyosaki emphasizes that financial success often requires courage and a focus on learning beyond formal education. He also highlights the importance of understanding cash flow, people management, and personal time in business. Additionally, Kiyosaki mentions the role of self-discipline and the benefits of playing educational games like CASHFLOW, which teach accounting and financial literacy in a fun and engaging manner (Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf, Page 159, Section: Unknown).",
+      "timestamp": "2026-03-29T14:12:41.888316",
       "sources": [
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 19,
-          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" It describes a childhood experience unrelated to financial education or the book's themes.",
-          "score": 1.0,
-          "query_similarity": 0.47209200826315834,
-          "answer_similarity": 0.7279488779503237,
-          "bbox": null
+          "page": 2
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 196,
-          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" Please provide the correct book text for an accurate summary.",
-          "score": 1.0,
-          "query_similarity": 0.49828294110338056,
-          "answer_similarity": 0.5745014988406901,
-          "bbox": null
+          "page": 13
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 112,
-          "text": "In the final chapter of this book, I offer 10 steps that I followed on the road to my financial freedom.",
-          "score": 1.0,
-          "query_similarity": 0.42657112004053543,
-          "answer_similarity": 0.33670941794923775,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 19,
-          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" It describes a childhood experience unrelated to financial education or the book's themes.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "page": 21
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 196,
-          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" Please provide the correct book text for an accurate summary.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 112,
-          "text": "In the final chapter of this book, I offer 10 steps that I followed on the road to my financial freedom.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 34
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
         }
       ]
     },
     {
       "role": "user",
-      "content": "what are the contents present in the book i mean lessons",
-      "timestamp": "2026-03-29T12:45:22.791782"
+      "content": "give summary of the book",
+      "timestamp": "2026-03-29T14:12:51.808721"
     },
     {
       "role": "assistant",
-      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki contains six main lessons, which are repeated over 30 years. These lessons are meant to serve as guideposts to help readers and their children grow wealthier in a world of increasing change and uncertainty. While the specific details of these lessons are not fully detailed in the provided excerpts, the book aims to teach fundamental concepts related to personal finance and investing, particularly focusing on converting earned income into passive and portfolio income. For a comprehensive understanding of these lessons, one would need to read the full book.\n\nSource Attribution: \n- Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf [Page: 17]",
-      "timestamp": "2026-03-29T12:45:37.607090",
+      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki explores financial education and the differences in financial philosophies between the author's two fathers: a successful businessman (rich dad) and a traditional career-focused educator (poor dad). Key themes include:\n\n1. **Financial Intelligence vs. Academic Intelligence**: The book emphasizes that financial success is not solely based on academic achievement but on understanding financial concepts and making informed decisions.\n\n2. **Mindset and Attitude**: The rich dad encourages a mindset focused on creating wealth through investing and entrepreneurship, while the poor dad focuses on job security and traditional employment.\n\n3. **Cash Flow Management**: Understanding cash flow is crucial for financial success. The book explains how to manage cash flow effectively to build wealth.\n\n4. **Investment Strategies**: Investing in assets that generate passive income is highlighted as a key strategy for achieving financial freedom. The book discusses various investment types and the importance of understanding financial statements.\n\n5. **Education and Self-Discipline**: Developing self-discipline and financial literacy are emphasized as essential for financial success. The book suggests that formal education alone is insufficient for financial success.\n\n6. **Emotional Education**: Emotional intelligence is seen as critical for making sound financial decisions. The book argues that fear and lack of confidence often prevent people from taking necessary financial risks.\n\n7. **Games and Tools**: The book introduces educational tools like the CASHFLOW game series, which are designed to teach financial concepts through interactive play.\n\n8. **Failure and Success**: The author stresses that failure can be a catalyst for success, encouraging readers to view failures as opportunities to learn and improve.\n\nThese themes are illustrated through anecdotes and dialogues, providing insights into the author's personal experiences and the contrasting financial philosophies of his two fathers. The book aims to empower readers to take control of their financial futures by adopting a more proactive and entrepreneurial approach to wealth creation.\n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T14:12:58.429558",
       "sources": [
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "This book is about those six lessons, put as simply as possible.",
-          "score": 0.5552341915214687,
-          "query_similarity": 0.7963774461599613,
-          "answer_similarity": 0.3214877536587107,
-          "bbox": null
+          "page": 2
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "The lessons are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.",
-          "score": 0.5545968313197014,
-          "query_similarity": 0.4034044357120107,
-          "answer_similarity": 0.5457380479346103,
-          "bbox": null
+          "page": 13
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "six main lessons, repeated over 30 years.",
-          "score": 0.5545968313197014,
-          "query_similarity": 0.559893184906047,
-          "answer_similarity": 0.20692251423615304,
-          "bbox": null
+          "page": 21
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.5105877030002622,
-          "query_similarity": 0.52226634573578,
-          "answer_similarity": 0.6194842106147099,
-          "bbox": null
+          "page": 27
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 173,
-          "text": "educational products are created to teach the same skills my rich dad taught me, the skills of converting earned income into passive and portfolio income.",
-          "score": 0.3841761412237906,
-          "query_similarity": 0.30002938862466233,
-          "answer_similarity": 0.5796597363222414,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "This book is about those six lessons, put as simply as possible.",
-          "score": 0.5552341915214687,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "page": 34
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "The lessons are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.",
-          "score": 0.5545968313197014,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 17,
-          "text": "six main lessons, repeated over 30 years.",
-          "score": 0.5545968313197014,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.5105877030002622,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 173,
-          "text": "educational products are created to teach the same skills my rich dad taught me, the skills of converting earned income into passive and portfolio income.",
-          "score": 0.3841761412237906,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
         }
       ]
     },
     {
       "role": "user",
-      "content": "what are the contents present in the book",
-      "timestamp": "2026-03-29T12:45:50.285791"
+      "content": "give summary in 500 words",
+      "timestamp": "2026-03-29T14:13:16.897588"
     },
     {
       "role": "assistant",
-      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki covers several key contents and themes:\n\n1. **Six Main Lessons**: The book is based on six main lessons that the author learned over 30 years, as taught by his \"rich dad.\" These lessons are intended to guide readers and their children to grow wealthier in a world of increasing change and uncertainty. (Source: [Page: 17, Section: Unknown])\n\n2. **Mental, Emotional, and Educational Process**: It details the author's journey in following his rich dad's advice, focusing on the process of changing quadrants from E and S (Employee and Self-Employed) to B and I (Business Owner and Investor). (Source: [Page: 209, Section: Unknown])\n\n3. **CASHFLOW Quadrant**: The book explains the CASHFLOW Quadrant, which categorizes people into four groups based on their sources of income: E (Employee), S (Self-Employed), B (Business Owner), and I (Investor). It highlights the differences between these groups and why certain people might gravitate towards one over the others. (Source: [Page: 211, Section: Unknown])\n\n4. **Personal Change and Financial Intelligence**: The second part of the book emphasizes personal change and the importance of financial intelligence. It discusses the qualities and mindset required to move from the E and S quadrants to the B and I quadrants. (Source: [Page: 211, Section: Unknown])\n\n5. **Opportunities in the Information Age**: The book also addresses the opportunities available in the Information Age, suggesting that individuals with the skills of B\u2019s and I\u2019s can identify and seize these opportunities to achieve financial freedom. (Source: [Page: 211, Section: Unknown])\n\nThese contents are designed to help readers understand and navigate the financial landscape, moving towards greater wealth and financial freedom.",
-      "timestamp": "2026-03-29T12:46:13.668043",
+      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki is a book that explores the differences in financial philosophies between the author's two fathers: a poor, government-employed father and a rich, business-oriented father. The book emphasizes the importance of financial education and the role of mindset in achieving financial success. Here are key points from the excerpts provided:\n\n1. **Financial Mindset and Education**:\n   - The book begins by stating that \"Rich Dad Poor Dad is a starting point for anyone looking to gain control of their financial future\" (USA TODAY, p. 2). This sets the tone for the importance of understanding financial systems and strategies.\n   - Kiyosaki contrasts the two fathers' approaches to money. His poor dad focused on job security and traditional employment, while his rich dad emphasized investing and business systems (p. 145).\n\n2. **The Role of Emotions in Decision Making**:\n   - Kiyosaki discusses the emotional aspects of financial decision-making. He notes that emotions like fear and greed can either be used to one's advantage or against oneself (p. 41).\n   - He uses the metaphor of a donkey chasing a carrot to illustrate how people can be driven by desires and fears, often leading to poor financial decisions (p. 47).\n\n3. **Understanding Financial Statements and Assets**:\n   - Kiyosaki explains that understanding financial statements is crucial for making informed decisions. He provides examples of how a small investment can grow into a large one (p. 110).\n   - He introduces the concept of \"playing not to lose\" versus \"playing to win,\" suggesting that the latter is more effective for financial success (p. 132).\n\n4. **Laziness and the Power of Focus**:\n   - Kiyosaki identifies laziness as a common issue among talented individuals, often stemming from a fear of losing control or facing difficult situations (p. 124).\n   - He argues that overcoming this laziness requires a bit of greed and the courage to take risks (p. 124).\n\n5. **Importance of Self-Confidence and Discipline**:\n   - Kiyosaki stresses the importance of self-confidence and discipline in achieving financial success. He mentions that financial literacy involves understanding cash flow, people management, and personal time management (p. 152).\n   - He uses the phrase \"Pay yourself first\" to highlight the need for prioritizing financial goals and investments (p. 159).\n\n6. **Games and Education**:\n   - Kiyosaki discusses the educational value of his board games, particularly CASHFLOW, which he created to teach comprehensive financial skills (p. 194).\n   - He believes that these games are a better teaching tool than traditional reading or lectures, as they engage the body, mind, emotions, and spirit (p. 203).\n\n7. **The Rat Race and Financial Intelligence**:\n   - Kiyosaki describes the \"Rat Race\" as a lifestyle where people are dependent on an employer and lack financial intelligence (p. 68).\n   - He contrasts this with the financial intelligence of successful investors, who are not afraid of losing and focus on making money in both up and down markets (p. 174).\n\n8. **Legal and Corporate Structures**:\n   - Kiy",
+      "timestamp": "2026-03-29T14:13:35.645750",
       "sources": [
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.48056401257365206,
-          "query_similarity": 0.48087982783114175,
-          "answer_similarity": 0.5874017050771816,
-          "bbox": null
+          "page": 2
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 4,
-          "text": "The book \"Rich Dad Poor Dad\" by Robert T. K.iyosaki covers several key contents and themes, including the CASHFLOW Quadrant, personal change and financial intelligence, and opportunities in the Information Age.",
-          "score": 0.46925807791597185,
-          "query_similarity": 0.3302621287607829,
-          "answer_similarity": 0.7731218014337045,
-          "bbox": null
+          "page": 13
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "The second part of this book is about personal change. It\u2019s more about who you have to be, instead of what you have to do.",
-          "score": 0.4536421793383373,
-          "query_similarity": 0.5463081738886931,
-          "answer_similarity": 0.4164007179060676,
-          "bbox": null
+          "page": 21
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is for people who are ready to move beyond job security and begin to achieve financial security.",
-          "score": 0.36339513407206536,
-          "query_similarity": 0.33830630293763464,
-          "answer_similarity": 0.4059237902988004,
-          "bbox": null
+          "page": 27
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "This book is written for people who are ready to make changes in their lives to move beyond job security and begin to build their own pipelines to achieve financial freedom.",
-          "score": 0.36125887489768427,
-          "query_similarity": 0.35886069820569166,
-          "answer_similarity": 0.4458352960847197,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.48056401257365206,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "page": 34
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 4,
-          "text": "The book \"Rich Dad Poor Dad\" by Robert T. K.iyosaki covers several key contents and themes, including the CASHFLOW Quadrant, personal change and financial intelligence, and opportunities in the Information Age.",
-          "score": 0.46925807791597185,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "The second part of this book is about personal change. It\u2019s more about who you have to be, instead of what you have to do.",
-          "score": 0.4536421793383373,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is for people who are ready to move beyond job security and begin to achieve financial security.",
-          "score": 0.36339513407206536,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "This book is written for people who are ready to make changes in their lives to move beyond job security and begin to build their own pipelines to achieve financial freedom.",
-          "score": 0.36125887489768427,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
         }
       ]
     },
     {
       "role": "user",
-      "content": "what are the chapters present in this book",
-      "timestamp": "2026-03-29T12:47:47.414226"
+      "content": "give summary in 500 words",
+      "timestamp": "2026-03-29T14:39:14.644235"
     },
     {
       "role": "assistant",
-      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki is divided into three parts, and the chapters present are as follows:\n\n**Part One: THE CASHFLOW QUADRANT**\n- Chapter One: Why Don\u2019t You Get a Job?\n- Chapter Two: Different Quadrants, Different People\n- Chapter Three: Why People Choose Security over Freedom\n- Chapter Four: The Three Kinds of Business Systems\n- Chapter Five: The Five Levels of Investors\n- Chapter Six: You Cannot See Money with Your Eyes\n\n**Part Two: BRINGING OUT THE BEST IN YOU**\n- Chapter Seven: Becoming Who You Are\n- Chapter Eight: How Do I Get Rich?\n- Chapter Nine: Be the Bank, Not the Banker\n\n**Part Three: HOW TO BECOME A SUCCESSFUL B AND I**\n- Chapter Ten: Take Baby Steps\n- Chapter Eleven: Step 1: It\u2019s Time to Mind Your Own Business\n- Chapter Twelve: Step 2: Take Control of Your Cash Flow\n- Chapter Thirteen: Step 3: Know the Difference Between Risk and Risky\n- Chapter Fourteen: Step 4: Decide What Kind of Investor You Want to Be\n- Chapter Fifteen: Step 5: Seek Mentors\n- Chapter Sixteen: Step 6: Make Disappointment Your Strength\n- Chapter Seventeen: Step 7: The Power of Faith\n- Chapter Eighteen: In Summary\n\nThese chapter titles are extracted directly from the provided document excerpts.",
-      "timestamp": "2026-03-29T12:48:17.338821",
+      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki is a book that explores the differences between the financial philosophies of Kiyosaki's two fathers\u2014a poor public school teacher and a successful businessman\u2014and how these perspectives shaped Kiyosaki's understanding of wealth and financial success. The book emphasizes the importance of financial education, entrepreneurship, and understanding the power of money.\n\nKiyosaki introduces the concept of financial intelligence, which is not just about knowing how to manage money but also about understanding the legal and financial structures that can lead to wealth. He argues that financial intelligence is crucial for making informed decisions about investments and business ventures. The book highlights the importance of focusing on financial systems and strategies rather than just the products or services one provides. For instance, Kiyosaki uses the example of McDonald's, which excels in business systems, to illustrate how focusing on business systems can lead to greater financial success.\n\nKiyosaki also discusses the role of fear and desire in financial decision-making. He suggests that fear can be a powerful motivator but can also paralyze individuals, leading them to make poor financial choices. Conversely, desire can drive individuals to take risks and pursue opportunities, but it must be managed to avoid impulsive decisions. Kiyosaki emphasizes the importance of self-confidence and the courage to act on one's knowledge and desires.\n\nThe book delves into the concept of cash flow and how it can be used to create wealth. Kiyosaki explains that understanding cash flow is key to distinguishing between assets and liabilities. He provides examples of how poor financial habits, such as spending everything earned, can lead to financial troubles, even when there is an increase in income. Conversely, he illustrates how creating assets that generate passive income can lead to financial freedom.\n\nKiyosaki also discusses the importance of education in financial success. He argues that traditional schooling often fails to teach the practical skills needed to manage money and invest wisely. He advocates for financial literacy and the use of educational tools like his CASHFLOW board games to teach these skills. The games are designed to be fun and engaging, allowing players to make mistakes with play money and learn from them.\n\nThe book touches on the role of government and taxes in financial success. Kiyosaki suggests that while taxes can be a burden, understanding how to navigate the tax system and use it to one's advantage can be a key to financial success. He also discusses the importance of understanding the legal and corporate structures that can be used to protect and grow wealth.\n\nThroughout the book, Kiyosaki emphasizes the importance of taking risks and not playing it safe. He argues that playing it safe often leads to mediocrity and financial struggles, while taking calculated risks can lead to significant financial gains. He provides numerous examples of individuals who have achieved financial success by taking risks and making bold decisions.\n\nIn summary, \"Rich Dad Poor Dad\" is a book that challenges traditional views of wealth and financial success, emphasizing the importance of financial education, understanding business systems, and taking calculated risks. Kiyosaki's message is that financial success is not just about having money but about having the knowledge and skills to manage and grow it effectively. (Source: Rich Dad Poor Dad by Robert T. Kiyosaki, USA TODAY, and excerpts from the book)",
+      "timestamp": "2026-03-29T14:39:21.523777",
       "sources": [
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.45871014811504046,
-          "query_similarity": 0.41840868404497406,
-          "answer_similarity": 0.6346015764183424,
-          "bbox": null
+          "page": 2
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "Part Two The second part of this book is about personal change.",
-          "score": 0.4509012103340781,
-          "query_similarity": 0.546126039628754,
-          "answer_similarity": 0.4172017438364991,
-          "bbox": null
+          "page": 13
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 190,
-          "text": "Chapter Eight How Do I Get Rich?",
-          "score": 0.43017956122111906,
-          "query_similarity": 0.41363067621940597,
-          "answer_similarity": 0.5634683980012736,
-          "bbox": null
+          "page": 21
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 190,
-          "text": "Chapter Nine Be the Bank, Not the Banker",
-          "score": 0.39327499107324027,
-          "query_similarity": 0.4092586595932746,
-          "answer_similarity": 0.4648970808483977,
-          "bbox": null
+          "page": 27
         },
         {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
           "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "Part One The first part of this book focuses on the core differences between people in the four quadrants.",
-          "score": 0.3720209252733371,
-          "query_similarity": 0.47266218968353974,
-          "answer_similarity": 0.2988400982292173,
-          "bbox": null
+          "page": 34
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
         }
-      ],
-      "highlights": [
+      ]
+    },
+    {
+      "role": "user",
+      "content": "list chapters in this books",
+      "timestamp": "2026-03-29T19:16:34.944928"
+    },
+    {
+      "role": "assistant",
+      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki contains the following chapters:\n\n**PART ONE: THE CASHFLOW QUADRANT**\n- Chapter One: Why Don\u2019t You Get a Job?\n- Chapter Two: Different Quadrants, Different People\n- Chapter Three: Why People Choose Security over Freedom\n- Chapter Four: The Three Kinds of Business Systems\n- Chapter Five: The Five Levels of Investors\n- Chapter Six: You Cannot See Money with Your Eyes\n\n**PART TWO: BRINGING OUT THE BEST IN YOU**\n- Chapter Seven: Becoming Who You Are\n- Chapter Eight: How Do I Get Rich?\n- Chapter Nine: Be the Bank, Not the Banker\n\n**PART THREE: HOW TO BECOME A SUCCESSFUL B AND I**\n- Chapter Ten: Take Baby Steps\n- THE SEVEN STEPS TO FINDING YOUR FINANCIAL FAST TRACK\n  - Chapter Eleven: Step 1: It\u2019s Time to Mind Your Own Business\n  - Chapter Twelve: Step 2: Take Control of Your Cash Flow\n  - Chapter Thirteen: Step 3: Know the Difference Between Risk and Risky\n  - Chapter Fourteen: Step 4: Decide What Kind of Investor You Want to Be\n  - Chapter Fifteen: Step 5: Seek Mentors\n  - Chapter Sixteen: Step 6: Make Disappointment Your Strength\n  - Chapter Seventeen: Step 7: The Power of Faith\n  - Chapter Eighteen: In Summary\n\nSource Attribution: [Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:16:45.701030",
+      "sources": [
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 209,
-          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
-          "score": 0.45871014811504046,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "Part Two The second part of this book is about personal change.",
-          "score": 0.4509012103340781,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 190,
-          "text": "Chapter Eight How Do I Get Rich?",
-          "score": 0.43017956122111906,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 190
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 190,
-          "text": "Chapter Nine Be the Bank, Not the Banker",
-          "score": 0.39327499107324027,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 191
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "give 10 quotes in this book",
+      "timestamp": "2026-03-29T19:17:37.027694"
+    },
+    {
+      "role": "assistant",
+      "content": "1. The lessons in this book are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.\n\n2. Choosing our thoughts is the way out of fear, weaknesses, and neediness by confronting our own fears and greed.\n\n3. Just because you are a teacher does not mean you have to be a poor teacher. The path is the goal, as Thich Naht Hahn said.\n\n4. This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice. It's for people ready to change quadrants and achieve financial security.\n\n5. Choose to share this knowledge with your children, and you choose to prepare them for the world that awaits. No one else will.\n\n6. Money won\u2019t make you happy. Just live below your means. Play it safe. Don\u2019t go for your dreams.\n\n7. Life pushes all of us around. Some people give up and others fight. A few learn the lesson and move on. They welcome life pushing them around.\n\n8. If you learn this lesson, you will grow into a wise, wealthy, and happy young man. If you don\u2019t, you will spend your life blaming a job, low pay, or your boss for your problems.\n\n9. Guilt is worse than greed, for guilt robs the body of its soul. But just remember what Michael Douglas said in the movie Wall Street: \"Greed is good.\"\n\n10. People\u2019s lives are forever controlled by two emotions: fear and greed. Offer them more money and they continue the cycle by increasing their spending. This is what I call the Rat Race.",
+      "timestamp": "2026-03-29T19:18:14.200784",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
         },
         {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 211,
-          "text": "Part One The first part of this book focuses on the core differences between people in the four quadrants.",
-          "score": 0.3720209252733371,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 43
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 205
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 176
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 200
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 28
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 142
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 116
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 140
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 36
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 212
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what does it mean by A Partnership Is Formed",
+      "timestamp": "2026-03-29T19:18:45.527817"
+    },
+    {
+      "role": "assistant",
+      "content": "Based on the provided document excerpts, there is no direct information about what it means by \"A Partnership Is Formed.\" However, the document does discuss partnerships in a general sense, particularly in the context of business and offers. For instance, it mentions making offers with \"subject-to\" contingencies and involving a business partner, though it humorously notes that for the author, their business partner is their cat. \n\nFor a more precise understanding of what forming a partnership entails, we would need additional context or specific excerpts from the document. Given the available information, the document does not provide a detailed explanation of forming a partnership.\n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:18:49.064062",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 52
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 54
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what does it mean by Waiting in Line on Saturday in this book",
+      "timestamp": "2026-03-29T19:19:35.887869"
+    },
+    {
+      "role": "assistant",
+      "content": "In \"Rich Dad Poor Dad,\" the phrase \"Waiting in Line on Saturday\" refers to the narrator's experience of longing to buy comic books but lacking the necessary funds. Specifically, the excerpt states: \"At the end of the second Saturday, I was again saying goodbye to Mrs. Martin and looking at the comic-book stand with a longing gaze. The hard thing about not even getting 30 cents every Saturday was that I didn\u2019t have any money to buy comic books.\" This situation illustrates the narrator's desire to spend money on hobbies or personal interests but being restricted by financial limitations. \n\n[Source: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf, Page: 45]",
+      "timestamp": "2026-03-29T19:19:41.674228",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 45
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 149
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 122
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 153
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what are the lessons present in this book",
+      "timestamp": "2026-03-29T19:20:34.719102"
+    },
+    {
+      "role": "assistant",
+      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki presents six main lessons, which are meant to serve as guideposts rather than definitive answers. These lessons are designed to help readers and their children grow wealthier in a world of increasing change and uncertainty. However, the specific six lessons are not detailed in the provided excerpts.\n\nFor a comprehensive understanding of these lessons, one would need to refer to the full text of the book. The excerpts do highlight that the book is about the mental, emotional, and educational processes involved in changing one's financial quadrant, particularly from the E (Employee) and S (Self-Employed) categories to the B (Business Owner) and I (Investor) categories. The book emphasizes the importance of financial intelligence and controlling the direction of one's cash flow to achieve financial freedom.",
+      "timestamp": "2026-03-29T19:20:38.846476",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "list of lessons in this book",
+      "timestamp": "2026-03-29T19:20:52.976532"
+    },
+    {
+      "role": "assistant",
+      "content": "Based on the provided document excerpts, the book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki contains seven main lessons, summarized as follows:\n\n1. **Mind Your Own Business** - Encourages readers to focus on starting their own businesses rather than working for others.\n2. **Take Control of Your Cash Flow** - Teaches the importance of managing personal finances effectively.\n3. **Know the Difference Between Risk and Risky** - Helps readers understand the distinction between taking calculated risks and engaging in risky behavior.\n4. **Decide What Kind of Investor You Want to Be** - Guides readers in making informed decisions about investing.\n5. **Seek Mentors** - Advises readers to find mentors who can provide guidance and support.\n6. **Make Disappointment Your Strength** - Encourages resilience and learning from setbacks.\n7. **The Power of Faith** - Emphasizes the role of faith and belief in achieving financial success.\n\nThese lessons are presented as guideposts to help readers and their children grow wealthier in a changing world. [Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:20:58.014352",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 191
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "list of lessons in this book like lesson 1 and lesson 2",
+      "timestamp": "2026-03-29T19:21:19.455711"
+    },
+    {
+      "role": "assistant",
+      "content": "Based on the provided document excerpts, the book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki discusses six main lessons, although specific details about each lesson are not directly quoted. One excerpt mentions that the book is about these six lessons, which are meant to guide readers and their children to grow wealthier despite increasing change and uncertainty in the world. However, the exact content of these lessons is not detailed in the given excerpts.\n\nFor a more comprehensive list of the lessons, you may need to refer to the full text of the book. According to the document, the lessons are summarized as follows:\n\n\"The lessons are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.\"\n\nThis indicates that the lessons are designed to help readers navigate financial growth and adapt to changing circumstances.",
+      "timestamp": "2026-03-29T19:21:26.165469",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 173
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "give summary about page 56",
+      "timestamp": "2026-03-29T19:23:06.619692"
+    },
+    {
+      "role": "assistant",
+      "content": "Page 56 does not have specific content excerpted in the provided document. However, based on the surrounding pages, the general theme revolves around financial education and the importance of understanding cash flow. On page 58, the author discusses the significance of cash flow in illustrating how a person manages their money, stating that \"The reason I started with the story of the richest men in America is to illustrate the flaw in believing that money will solve all problems.\" This indicates that the content on page 56 likely introduces or elaborates on the concept of cash flow and its role in personal finance.\n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:23:10.436841",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 2
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 13
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 21
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 34
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "give summary about page 59",
+      "timestamp": "2026-03-29T19:23:29.412989"
+    },
+    {
+      "role": "assistant",
+      "content": "On page 59 of \"Rich Dad Poor Dad,\" the author discusses the importance of understanding cash flow and how it affects a person's financial situation. Specifically, the author explains that money alone does not solve financial problems; instead, it often highlights underlying issues. The author provides an example of individuals who come into sudden wealth (like through inheritance, a pay raise, or lottery winnings) but often end up in the same or worse financial situations. This is because their cash flow patterns remain unchanged, leading to increased spending. The author emphasizes that money merely accentuates existing financial habits and does not inherently improve financial outcomes. [Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:23:32.354081",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 2
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 13
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 21
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 27
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 34
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 41
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 58
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 68
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 78
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 86
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 95
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 101
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 110
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 117
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 124
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 132
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 138
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 152
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 174
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 203
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what content is present in images in page 60",
+      "timestamp": "2026-03-29T19:24:04.488008"
+    },
+    {
+      "role": "assistant",
+      "content": "[Error: unable to stream response]",
+      "timestamp": "2026-03-29T19:24:05.361920",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 45
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 46
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 4
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 54
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2026-03-29T19:24:11.749281"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! It seems like you might have a question or need some information based on the provided document excerpts. Could you please specify what you would like to know? For example, you might want to know more about the content of \"Rich Dad Poor Dad\" or details about its acknowledgments. Please let me know, and I'll be happy to help based on the information available in the excerpts. \n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T19:24:14.268018",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 176
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 23
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 34
+        },
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 8
         }
       ]
     }

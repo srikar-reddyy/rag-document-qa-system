@@ -1,18 +1,11 @@
 {
   "documents": [
     {
-      "document_id": "cb74cb16-b8e5-4ba7-bd0f-4f1525ba752d",
-      "file_name": "HallTicket (3).pdf",
-      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/cb74cb16-b8e5-4ba7-bd0f-4f1525ba752d.pdf",
-      "file_size": 550911,
-      "uploaded_at": "2026-03-29T12:39:22.864271"
-    },
-    {
-      "document_id": "f7e1c6c0-f6fd-4554-9b87-7facea7cb782",
+      "document_id": "06f2c61f-1ca2-4a6b-9d34-9b0087891fc2",
       "file_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/f7e1c6c0-f6fd-4554-9b87-7facea7cb782.pdf",
+      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/06f2c61f-1ca2-4a6b-9d34-9b0087891fc2.pdf",
       "file_size": 13494986,
-      "uploaded_at": "2026-03-29T12:40:40.110692"
+      "uploaded_at": "2026-03-29T14:11:25.473860"
     }
   ]
 }

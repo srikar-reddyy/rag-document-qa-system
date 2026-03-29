@@ -99,6 +99,66 @@ export const sendChatMessage = async (message, selectedDocuments = []) => {
 };
 
 /**
+ * Send chat message and stream answer progressively.
+ *
+ * @param {string} message
+ * @param {Array<string>} selectedDocuments
+ * @param {(chunk: string) => void} onChunk
+ * @returns {Promise<string>} final streamed text
+ */
+export const sendChatMessageStream = async (message, selectedDocuments = [], onChunk) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        selected_documents: selectedDocuments,
+      }),
+    });
+
+    if (!response.ok) {
+      let detail = 'Failed to get response from server';
+      try {
+        const data = await response.json();
+        detail = data?.detail || detail;
+      } catch (_) {
+        // ignore json parse failure for plain text error responses
+      }
+      throw new Error(detail);
+    }
+
+    if (!response.body) {
+      throw new Error('Streaming not supported by browser or server response.');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value, { stream: true });
+      if (!chunk) continue;
+
+      result += chunk;
+      if (onChunk) onChunk(chunk);
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('An unexpected error occurred while streaming response');
+  }
+};
+
+/**
  * Upload multiple documents to the backend.
  * 
  * Phase 2 TODO: Documents will be automatically processed and indexed in ChromaDB
