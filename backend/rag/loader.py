@@ -423,6 +423,7 @@ def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dic
             "text": enriched_text,
             "metadata": {
                 "file_name": file_name,
+                "page": 1,
                 "page_number": 1,
                 "total_pages": 1,
                 "file_type": "image",
@@ -471,6 +472,7 @@ def load_docx(file_path: str, file_name: str) -> List[Dict[str, any]]:
             "text": enriched_text,
             "metadata": {
                 "file_name": file_name,
+                "page": 1,
                 "page_number": 1,
                 "total_pages": 1,
                 "file_type": "docx",
@@ -511,6 +513,7 @@ def load_doc(file_path: str, file_name: str) -> List[Dict[str, any]]:
             "text": enriched_text,
             "metadata": {
                 "file_name": file_name,
+                "page": 1,
                 "page_number": 1,
                 "total_pages": 1,
                 "file_type": "doc",
@@ -552,22 +555,33 @@ def run_ocr_page_texts(pdf_path: str, lang: str = "eng") -> List[str]:
     page_texts: List[str] = []
 
     for page_num in range(1, total_pages + 1):
-        images = convert_from_path(
-            pdf_path,
-            first_page=page_num,
-            last_page=page_num,
-            dpi=200,
-            thread_count=1,
-        )
-
-        if not images:
-            page_texts.append("")
-            continue
-
-        ocr_text = pytesseract.image_to_string(images[0], lang=lang) or ""
+        ocr_text = run_ocr_single_page_text(pdf_path, page_num=page_num, lang=lang)
         page_texts.append(ocr_text)
 
     return page_texts
+
+
+def run_ocr_single_page_text(pdf_path: str, page_num: int, lang: str = "eng") -> str:
+    """
+    Run OCR for a single (1-based) PDF page and return extracted text.
+    """
+    if pytesseract is None or convert_from_path is None:
+        raise RuntimeError(
+            "OCR dependencies are missing. Install: pytesseract, pdf2image, pillow, and system tesseract."
+        )
+
+    images = convert_from_path(
+        pdf_path,
+        first_page=page_num,
+        last_page=page_num,
+        dpi=200,
+        thread_count=1,
+    )
+
+    if not images:
+        return ""
+
+    return pytesseract.image_to_string(images[0], lang=lang) or ""
 
 
 def extract_entities(text: str) -> Dict:
@@ -730,31 +744,30 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
         pdf_author = pdf_metadata.get('/Author') or pdf_metadata.get('/author') or "Unknown"
         pdf_title = pdf_metadata.get('/Title') or pdf_metadata.get('/title') or file_name
 
-        # First pass: standard text extraction via PyPDF
-        pypdf_page_texts = [(page.extract_text() or "") for page in reader.pages]
-        pypdf_full_text = "\n".join(pypdf_page_texts)
+        page_texts: List[str] = []
+        page_ocr_used: List[bool] = []
 
-        # OCR fallback only when needed
-        ocr_used = False
-        if not pypdf_full_text or len(pypdf_full_text.strip()) < MIN_TEXT_THRESHOLD:
-            logger.info(f"OCR fallback triggered for {file_name}")
-            try:
-                page_texts = run_ocr_page_texts(file_path)
-                full_text = "\n".join(page_texts)
-                ocr_used = True
-            except Exception as e:
-                logger.error(f"OCR failed for {file_name}: {str(e)}")
-                # Keep PyPDF text as final fallback, even if sparse
-                page_texts = pypdf_page_texts
-                full_text = pypdf_full_text
-                ocr_used = False
-        else:
-            logger.info(f"Text extracted normally for {file_name}")
-            page_texts = pypdf_page_texts
-            full_text = pypdf_full_text
+        # Per-page extraction with OCR fallback (never silently skip pages)
+        for page_num, page in enumerate(reader.pages, start=1):
+            extracted_text = (page.extract_text() or "").strip()
+            used_ocr = False
 
-        if not full_text or not full_text.strip():
-            raise Exception("No text could be extracted from PDF (PyPDF + OCR fallback both empty)")
+            if not extracted_text:
+                logger.warning(f"{file_name} | Page {page_num}: empty PyPDF extraction, attempting OCR fallback")
+                try:
+                    extracted_text = (run_ocr_single_page_text(file_path, page_num=page_num) or "").strip()
+                    used_ocr = True
+                    if not extracted_text:
+                        logger.warning(f"{file_name} | Page {page_num}: OCR fallback returned empty text")
+                except Exception as ocr_error:
+                    logger.warning(f"{file_name} | Page {page_num}: OCR fallback failed: {str(ocr_error)}")
+
+            page_texts.append(extracted_text)
+            page_ocr_used.append(used_ocr)
+
+        full_text = "\n".join([text for text in page_texts if text and text.strip()])
+        if not full_text.strip():
+            logger.warning(f"{file_name} | No extractable text found across all pages")
         
         # Perform intelligent entity extraction
         entity_data = extract_entities(full_text)
@@ -763,14 +776,15 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
             primary_entity = pdf_author  # Fallback to PDF metadata if available
 
         logger.info(
-            f"📄 {file_name} | Primary Entity: {primary_entity} | OCR used: {ocr_used} | "
+            f"📄 {file_name} | Primary Entity: {primary_entity} | "
             f"Organizations: {entity_data['entities']['organizations']}"
         )
 
         for page_num, text in enumerate(page_texts, start=1):
             text = text or ""
+            original_text = text
 
-            if page_num == 1:
+            if page_num == 1 and text.strip():
                 # Inject primary entity into page 1 text for embedding context
                 # This ensures the embedding captures the entity association
                 entity_header = f"SUBJECT: {primary_entity}\n"
@@ -782,31 +796,33 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
                     metadata_lines.append(f"SOURCE: {pdf_author}")
 
                 text = "\n".join(metadata_lines) + "\n\n" + text
-            
-            if text.strip():  # Only add non-empty pages
-                documents.append({
-                    "text": text,
-                    "metadata": {
-                        "file_name": file_name,
-                        "page_number": page_num,
-                        "total_pages": len(reader.pages),
-                        "pdf_author": pdf_author,
-                        "pdf_title": pdf_title,
-                        "file_type": "pdf",
-                        "ocr_used": ocr_used,
-                        # Entity extraction results
-                        "primary_entity": primary_entity,
-                        "entities": entity_data["entities"],  # {persons, organizations, roles}
-                        "entity_persons": entity_data["entities"]["persons"],
-                        "entity_organizations": entity_data["entities"]["organizations"],
-                        "entity_roles": entity_data["entities"]["roles"]
-                    }
-                })
-        
-        if not documents:
-            raise Exception("All extracted pages are empty after processing")
 
-        logger.info(f"✓ Extracted {len(documents)} pages from {file_name} (ocr_used={ocr_used})")
+            documents.append({
+                "text": text,
+                "metadata": {
+                    "file_name": file_name,
+                    "page": page_num,
+                    "page_number": page_num,
+                    "total_pages": len(reader.pages),
+                    "pdf_author": pdf_author,
+                    "pdf_title": pdf_title,
+                    "file_type": "pdf",
+                    "ocr_used": page_ocr_used[page_num - 1],
+                    "text_length": len(original_text.strip()),
+                    # Entity extraction results
+                    "primary_entity": primary_entity,
+                    "entities": entity_data["entities"],  # {persons, organizations, roles}
+                    "entity_persons": entity_data["entities"]["persons"],
+                    "entity_organizations": entity_data["entities"]["organizations"],
+                    "entity_roles": entity_data["entities"]["roles"]
+                }
+            })
+
+            logger.info(
+                f"Page {page_num} → length: {len(original_text.strip())} → ocr_used: {page_ocr_used[page_num - 1]}"
+            )
+
+        logger.info(f"✓ Extracted {len(documents)} pages from {file_name}")
         return documents
     
     except Exception as e:
@@ -843,6 +859,7 @@ def load_txt(file_path: str, file_name: str) -> List[Dict[str, any]]:
             "text": enriched_text,
             "metadata": {
                 "file_name": file_name,
+                "page": 1,
                 "page_number": 1,
                 "total_pages": 1,
                 "file_type": "txt",

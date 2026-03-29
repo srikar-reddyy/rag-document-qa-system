@@ -1,41 +1,78 @@
 """
 Document Chunker
-Semantic paragraph-based chunking using LangChain for improved RAG retrieval
+Semantic, adaptive, sentence-based chunking for improved RAG retrieval quality.
 """
 
-from typing import List, Dict
+from typing import List, Dict, Any
 import logging
-try:
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-except Exception:
-    from langchain.text_splitter import RecursiveCharacterTextSplitter
+import importlib
+import re
+from dataclasses import dataclass
+
+from .embedder import embed_text
+from .utils import cosine_similarity
 
 try:
-    from langchain_core.documents import Document
+    _blingfire_mod = importlib.import_module("blingfire")
+    text_to_sentences = getattr(_blingfire_mod, "text_to_sentences")
 except Exception:
-    try:
-        from langchain.schema import Document
-    except Exception:
-        # Last-resort: define a minimal Document dataclass fallback
-        from dataclasses import dataclass
+    text_to_sentences = None
 
-        @dataclass
-        class Document:
-            page_content: str
-            metadata: dict
+try:
+    _transformers_mod = importlib.import_module("transformers")
+    AutoTokenizer = getattr(_transformers_mod, "AutoTokenizer")
+except Exception:
+    AutoTokenizer = None
+
+
+# Load Document class dynamically to avoid hard dependency breakages
+try:
+    _lc_docs_mod = importlib.import_module("langchain_core.documents")
+    Document = getattr(_lc_docs_mod, "Document")
+except Exception:
+    @dataclass
+    class Document:
+        page_content: str
+        metadata: dict
 
 logger = logging.getLogger(__name__)
 
-# Configuration - Token-based chunking for better semantic coherence
-CHUNK_SIZE = 400  # tokens
-CHUNK_OVERLAP = 80  # tokens
+# Adaptive chunk size defaults (in actual tokens)
+DEFAULT_CHUNK = 400
+LARGE_CHUNK = 700
+SMALL_CHUNK = 250
 
-# Approximate characters per token (rough estimate for English text)
-CHARS_PER_TOKEN = 4
+# Sentence overlap (not char overlap)
+DEFAULT_OVERLAP_SENTENCES = 1
+MAX_OVERLAP_SENTENCES = 2
 
-# Calculate character-based equivalents for the splitter
-CHUNK_SIZE_CHARS = CHUNK_SIZE * CHARS_PER_TOKEN  # ~1600 characters
-CHUNK_OVERLAP_CHARS = CHUNK_OVERLAP * CHARS_PER_TOKEN  # ~320 characters
+# Quality filters
+MIN_CHUNK_TOKENS = 20
+DEDUP_SIMILARITY_THRESHOLD = 0.90
+
+_tokenizer = None
+
+
+def get_tokenizer():
+    """
+    Lazily initialize tokenizer used by embedding model family for accurate token counts.
+    """
+    global _tokenizer
+    if _tokenizer is None:
+        if AutoTokenizer is None:
+            raise RuntimeError("transformers is not installed. Install it to enable token-accurate chunking.")
+        _tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
+    return _tokenizer
+
+
+def count_tokens(text: str) -> int:
+    """
+    Count tokens using the real tokenizer (not char approximation).
+    """
+    if not text or not text.strip():
+        return 0
+    tokenizer = get_tokenizer()
+    return len(tokenizer.encode(text, add_special_tokens=False))
 
 
 def _to_int(value, default: int = 0) -> int:
@@ -46,79 +83,296 @@ def _to_int(value, default: int = 0) -> int:
         return default
 
 
-def create_text_splitter(
-    chunk_size: int = CHUNK_SIZE,
-    chunk_overlap: int = CHUNK_OVERLAP
-) -> RecursiveCharacterTextSplitter:
+def split_sentences(text: str) -> List[str]:
     """
-    Create a LangChain RecursiveCharacterTextSplitter configured for semantic chunking.
-    
-    The splitter prioritizes splitting by:
-    1. Double newlines (paragraphs) - \n\n
-    2. Single newlines - \n
-    3. Sentence endings - . ! ?
-    4. Spaces
-    
-    Args:
-        chunk_size: Target chunk size in tokens (default: 400)
-        chunk_overlap: Overlap between chunks in tokens (default: 80)
-    
-    Returns:
-        Configured RecursiveCharacterTextSplitter
+    Robust sentence splitter. Uses BlingFire when available, regex fallback otherwise.
     """
-    # Convert tokens to approximate character counts
-    chunk_size_chars = chunk_size * CHARS_PER_TOKEN
-    chunk_overlap_chars = chunk_overlap * CHARS_PER_TOKEN
-    
-    return RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size_chars,
-        chunk_overlap=chunk_overlap_chars,
-        length_function=len,
-        separators=[
-            "\n\n",  # Paragraph breaks (highest priority)
-            "\n",    # Line breaks
-            ". ",    # Sentence endings with space
-            "! ",    # Exclamation with space
-            "? ",    # Question with space
-            "; ",    # Semicolon
-            ", ",    # Comma
-            " ",     # Spaces (lowest priority)
-            ""       # Fallback to character splitting
-        ],
-        keep_separator=True,  # Preserve separators for context
-        is_separator_regex=False
+    if not text:
+        return []
+
+    if text_to_sentences is not None:
+        try:
+            return [s.strip() for s in text_to_sentences(text).split("\n") if s and s.strip()]
+        except Exception:
+            pass
+
+    parts = re.split(r"(?<=[.!?])\s+|\n+", text)
+    return [s.strip() for s in parts if s and s.strip()]
+
+
+def _normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "")).strip()
+
+
+def _is_broken_ocr_fragment(line: str) -> bool:
+    """
+    Detect likely OCR garbage lines/fragments.
+    """
+    value = (line or "").strip()
+    if not value:
+        return True
+
+    # Mostly symbols/digits with weak alphabetic signal
+    alpha = sum(1 for ch in value if ch.isalpha())
+    alnum = sum(1 for ch in value if ch.isalnum())
+    if alnum == 0:
+        return True
+
+    if alpha / max(1, len(value)) < 0.25:
+        return True
+
+    # Extremely long token without spaces is often OCR artifact
+    if len(value) > 40 and " " not in value:
+        return True
+
+    return False
+
+
+def clean_chunk_text(text: str) -> str:
+    """
+    Clean chunk text by removing empty/noisy lines and normalizing whitespace.
+    """
+    lines = [ln.strip() for ln in (text or "").splitlines()]
+    kept = [ln for ln in lines if ln and not _is_broken_ocr_fragment(ln)]
+    return _normalize_whitespace(" ".join(kept))
+
+
+def infer_adaptive_chunk_size(text: str, metadata: Dict[str, Any]) -> int:
+    """
+    Adaptive chunk sizing heuristic:
+    - structured docs (resume/table-like): SMALL_CHUNK
+    - long narrative docs: LARGE_CHUNK
+    - default: DEFAULT_CHUNK
+    """
+    raw = text or ""
+    lines = [ln.strip() for ln in raw.splitlines() if ln.strip()]
+    lowered_name = str(metadata.get("file_name", "")).lower()
+    section = str(metadata.get("section_title", "")).lower()
+
+    bullet_like = sum(1 for ln in lines if re.match(r"^[-•*]\s+", ln))
+    colon_like = sum(1 for ln in lines if ":" in ln)
+    short_lines = sum(1 for ln in lines if len(ln.split()) <= 8)
+    table_like_ratio = (bullet_like + colon_like + short_lines) / max(1, len(lines))
+
+    # Narrative signal
+    sentences = split_sentences(raw)
+    avg_sentence_tokens = 0.0
+    if sentences:
+        avg_sentence_tokens = sum(max(1, count_tokens(s)) for s in sentences) / len(sentences)
+
+    structured_hint = any(key in lowered_name for key in ["resume", "cv"]) or any(
+        key in section for key in ["skills", "experience", "education", "projects"]
     )
+
+    if structured_hint or table_like_ratio >= 0.55:
+        return SMALL_CHUNK
+    if len(raw) > 6000 and avg_sentence_tokens >= 18:
+        return LARGE_CHUNK
+    return DEFAULT_CHUNK
+
+
+def _extract_keywords(text: str, top_k: int = 20) -> List[str]:
+    tokens = re.findall(r"\b[a-zA-Z]{4,}\b", (text or "").lower())
+    if not tokens:
+        return []
+
+    stop = {
+        "this", "that", "with", "from", "have", "were", "your", "their", "about", "into", "which",
+        "will", "would", "could", "should", "there", "where", "when", "what", "been", "being", "than",
+        "then", "them", "they", "also", "such", "using", "used", "between", "after", "before", "over",
+        "under", "into", "across", "more", "most", "other", "some", "many", "much"
+    }
+
+    freq = {}
+    for tok in tokens:
+        if tok in stop:
+            continue
+        freq[tok] = freq.get(tok, 0) + 1
+
+    ranked = sorted(freq.items(), key=lambda kv: kv[1], reverse=True)
+    return [k for k, _ in ranked[:top_k]]
+
+
+def _entity_density(chunk: str, metadata: Dict[str, Any]) -> float:
+    text = (chunk or "").lower()
+    if not text:
+        return 0.0
+
+    entities = []
+    for field in ["entity_persons", "entity_organizations", "entity_roles"]:
+        value = metadata.get(field, "")
+        if isinstance(value, str):
+            entities.extend([item.strip().lower() for item in value.split("|") if item.strip()])
+        elif isinstance(value, list):
+            entities.extend([str(item).strip().lower() for item in value if str(item).strip()])
+
+    if not entities:
+        return 0.0
+
+    hits = sum(1 for ent in entities if ent and ent in text)
+    return hits / max(1, len(entities))
+
+
+def _section_importance(section_title: str) -> float:
+    section = (section_title or "").strip().lower()
+    if not section or section == "unknown":
+        return 0.2
+
+    important = {
+        "summary": 1.0,
+        "abstract": 1.0,
+        "experience": 0.9,
+        "methodology": 0.85,
+        "results": 0.9,
+        "conclusion": 0.8,
+        "skills": 0.8,
+        "projects": 0.8,
+        "education": 0.7,
+    }
+    for key, value in important.items():
+        if key in section:
+            return value
+    return 0.5
+
+
+def compute_semantic_density(chunk: str, source_keywords: List[str], metadata: Dict[str, Any]) -> float:
+    """
+    Query-agnostic chunk quality score combining keyword/entity/section signals.
+    """
+    lowered = (chunk or "").lower()
+    if not lowered:
+        return 0.0
+
+    words = re.findall(r"\b\w+\b", lowered)
+    keyword_hits = sum(1 for kw in source_keywords if kw in lowered)
+    keyword_density = keyword_hits / max(1, len(words))
+
+    entity_density = _entity_density(chunk, metadata)
+    section_score = _section_importance(str(metadata.get("section_title", "Unknown")))
+
+    # Weighted bounded score in [0, 1]
+    score = (0.45 * min(1.0, keyword_density * 12.0)) + (0.35 * entity_density) + (0.20 * section_score)
+    return max(0.0, min(1.0, score))
+
+
+def _apply_sentence_overlap(chunk_sentences: List[List[str]], overlap_sentences: int) -> List[str]:
+    """
+    Sentence-based overlap to preserve context continuity.
+    """
+    merged = []
+    for i, sentences in enumerate(chunk_sentences):
+        current = list(sentences)
+        if i > 0 and overlap_sentences > 0:
+            prev_tail = chunk_sentences[i - 1][-overlap_sentences:]
+            current = prev_tail + current
+        merged.append(_normalize_whitespace(" ".join(current)))
+    return merged
+
+
+def _dedupe_chunks_semantic(chunks: List[str]) -> List[str]:
+    """
+    Deduplicate near-identical consecutive chunks using embedding cosine similarity.
+    """
+    deduped: List[str] = []
+    prev_embedding = None
+
+    for chunk in chunks:
+        if not chunk:
+            continue
+
+        try:
+            emb = embed_text(chunk)
+        except Exception as e:
+            logger.warning(f"Chunk dedupe embedding failed, falling back to lexical check: {str(e)}")
+            emb = None
+
+        if deduped:
+            if emb is not None and prev_embedding is not None:
+                sim = cosine_similarity(emb, prev_embedding)
+                if sim >= DEDUP_SIMILARITY_THRESHOLD:
+                    continue
+            else:
+                if chunk.lower() == deduped[-1].lower():
+                    continue
+
+        deduped.append(chunk)
+        prev_embedding = emb
+
+    return deduped
+
+
+def _group_sentences_semantic(sentences: List[str], chunk_size_tokens: int) -> List[List[str]]:
+    """
+    Group sentences into chunks capped by true token count.
+    """
+    groups: List[List[str]] = []
+    current_group: List[str] = []
+    current_tokens = 0
+
+    for sentence in sentences:
+        sent = _normalize_whitespace(sentence)
+        if not sent:
+            continue
+
+        sentence_tokens = count_tokens(sent)
+        if sentence_tokens == 0:
+            continue
+
+        # Hard cap very long sentence by itself
+        if sentence_tokens >= chunk_size_tokens:
+            if current_group:
+                groups.append(current_group)
+                current_group = []
+                current_tokens = 0
+            groups.append([sent])
+            continue
+
+        if current_group and current_tokens + sentence_tokens > chunk_size_tokens:
+            groups.append(current_group)
+            current_group = [sent]
+            current_tokens = sentence_tokens
+        else:
+            current_group.append(sent)
+            current_tokens += sentence_tokens
+
+    if current_group:
+        groups.append(current_group)
+
+    return groups
 
 
 def chunk_text(
     text: str,
-    chunk_size: int = CHUNK_SIZE,
-    overlap: int = CHUNK_OVERLAP
+    chunk_size: int | None = None,
+    overlap: int | None = None,
+    metadata: Dict[str, Any] | None = None,
 ) -> List[str]:
     """
-    Split text into semantic chunks using LangChain's RecursiveCharacterTextSplitter.
-    
-    This function prioritizes semantic boundaries (paragraphs, sentences) over
-    fixed character counts for better retrieval and reasoning.
-    
-    Args:
-        text: Text to chunk
-        chunk_size: Target chunk size in tokens (default: 400)
-        overlap: Overlap between chunks in tokens (default: 80)
-    
-    Returns:
-        List of text chunks
+    Split text into semantic chunks using sentence grouping and true token counts.
     """
     if not text or not text.strip():
         return []
-    
-    splitter = create_text_splitter(chunk_size, overlap)
-    chunks = splitter.split_text(text)
-    
-    # Clean up chunks (strip whitespace)
-    chunks = [chunk.strip() for chunk in chunks if chunk.strip()]
-    
-    return chunks
+
+    meta = metadata or {}
+    target_chunk_size = chunk_size or infer_adaptive_chunk_size(text, meta)
+    overlap_sentences = DEFAULT_OVERLAP_SENTENCES
+    if overlap is not None:
+        overlap_sentences = max(0, min(MAX_OVERLAP_SENTENCES, overlap))
+
+    sentences = split_sentences(text)
+    groups = _group_sentences_semantic(sentences, target_chunk_size)
+    with_overlap = _apply_sentence_overlap(groups, overlap_sentences=overlap_sentences)
+
+    cleaned = []
+    for ch in with_overlap:
+        value = clean_chunk_text(ch)
+        if not value:
+            continue
+        if count_tokens(value) < MIN_CHUNK_TOKENS:
+            continue
+        cleaned.append(value)
+
+    return _dedupe_chunks_semantic(cleaned)
 
 
 def detect_section_title(text: str) -> str:
@@ -165,9 +419,9 @@ def detect_section_title(text: str) -> str:
 
 
 def chunk_documents(
-    documents: List[Dict[str, any]],
-    chunk_size: int = CHUNK_SIZE,
-    overlap: int = CHUNK_OVERLAP
+    documents: List[Dict[str, Any]],
+    chunk_size: int | None = None,
+    overlap: int | None = None,
 ) -> List[Document]:
     """
     Chunk multiple documents using semantic paragraph-based chunking.
@@ -192,37 +446,58 @@ def chunk_documents(
     Returns:
         List of LangChain Document objects with enriched metadata
     """
-    splitter = create_text_splitter(chunk_size, overlap)
     all_chunked_docs = []
+    total_sentences = 0
+    total_tokens = 0
     
     for doc in documents:
         text = doc.get("text", "")
         metadata = doc.get("metadata", {})
+        page_number = _to_int(metadata.get("page", metadata.get("page_number", 1)), 1)
+        adaptive_size = chunk_size or infer_adaptive_chunk_size(text, metadata)
         
         if not text or not text.strip():
-            logger.warning(f"Skipping empty document: {metadata.get('file_name', 'unknown')}")
+            logger.warning(
+                f"Page {page_number} → length: 0 → chunks: 0 (empty extracted text)"
+            )
             continue
-        
-        # Split text directly so we can compute per-chunk char offsets
-        chunk_texts = splitter.split_text(text)
-        chunk_texts = [c.strip() for c in chunk_texts if c and c.strip()]
+
+        sentences = split_sentences(text)
+        total_sentences += len(sentences)
+
+        chunk_texts = chunk_text(
+            text,
+            chunk_size=adaptive_size,
+            overlap=overlap,
+            metadata=metadata,
+        )
         total_chunks = len(chunk_texts)
         cursor = 0
+        source_keywords = _extract_keywords(text)
         
         # Enrich each chunk with enhanced metadata
-        for chunk_idx, chunk_text in enumerate(chunk_texts):
+        for chunk_idx, chunk_body in enumerate(chunk_texts):
             # Compute chunk char offsets in source page text
-            search_start = max(0, cursor - CHUNK_OVERLAP_CHARS)
-            char_start = text.find(chunk_text, search_start)
+            search_start = max(0, cursor - 200)
+            char_start = text.find(chunk_body, search_start)
             if char_start == -1:
-                char_start = text.find(chunk_text)
+                char_start = text.find(chunk_body)
             if char_start == -1:
                 char_start = cursor
-            char_end = min(len(text), char_start + len(chunk_text))
+            char_end = min(len(text), char_start + len(chunk_body))
             cursor = max(cursor, char_end)
 
             # Detect section title from chunk content
-            section_title = detect_section_title(chunk_text)
+            section_title = detect_section_title(chunk_body)
+
+            token_count = count_tokens(chunk_body)
+            sentence_count = len(split_sentences(chunk_body))
+            semantic_density = compute_semantic_density(
+                chunk_body,
+                source_keywords=source_keywords,
+                metadata={**metadata, "section_title": section_title},
+            )
+            total_tokens += token_count
             
             # Get entity data from source metadata
             entity_persons = metadata.get("entity_persons", [])
@@ -237,20 +512,22 @@ def chunk_documents(
             
             # Enrich metadata - use only flat, primitive types for ChromaDB compatibility
             chunk_metadata = dict(metadata)
-            page_number = _to_int(metadata.get("page_number", metadata.get("page", 1)), 1)
             document_name = metadata.get("file_name", metadata.get("document_name", "unknown"))
 
             chunk_metadata.update({
                 "doc_name": document_name,
                 "document_name": document_name,
-                "page": str(page_number),
-                "page_number": str(page_number),
+                "page": page_number,
+                "page_number": page_number,
                 "section_title": section_title,
-                "chunk_index": str(chunk_idx),
-                "total_chunks": str(total_chunks),
-                "chunk_size_tokens": str(len(chunk_text) // CHARS_PER_TOKEN),
-                "char_start": str(char_start),
-                "char_end": str(char_end),
+                "chunk_index": chunk_idx,
+                "total_chunks": total_chunks,
+                "chunk_size_tokens": token_count,
+                "char_start": char_start,
+                "char_end": char_end,
+                "sentence_count": sentence_count,
+                "token_count": token_count,
+                "semantic_density": float(semantic_density),
                 "bbox": metadata.get("bbox", ""),
                 # Entity extraction data (flattened for ChromaDB)
                 "primary_entity": metadata.get("primary_entity", "Unknown"),
@@ -260,14 +537,19 @@ def chunk_documents(
             })
 
             chunk = Document(
-                page_content=chunk_text,
+                page_content=chunk_body,
                 metadata=chunk_metadata
             )
             
             all_chunked_docs.append(chunk)
+
+        logger.info(
+            f"Page {page_number} → length: {len(text.strip())} → chunks: {total_chunks} → target_chunk_size: {adaptive_size}"
+        )
     
     logger.info(f"Created {len(all_chunked_docs)} semantic chunks from {len(documents)} documents")
-    logger.info(f"Chunking strategy: {chunk_size} tokens/chunk with {overlap} token overlap")
+    avg_tokens = (total_tokens / len(all_chunked_docs)) if all_chunked_docs else 0.0
+    logger.info(f"Chunking stats → total_sentences: {total_sentences}, total_chunks: {len(all_chunked_docs)}, avg_tokens_per_chunk: {avg_tokens:.2f}")
     
     # Log sample metadata for verification
     if all_chunked_docs:

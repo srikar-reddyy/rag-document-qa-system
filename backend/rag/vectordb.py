@@ -23,6 +23,13 @@ PERSIST_DIRECTORY = Path(__file__).parent.parent / "data" / "chromadb"
 COLLECTION_NAME = "documents"
 
 
+def _to_int(value, default: int = 0) -> int:
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
 def recreate_chroma_storage():
     """
     Recreate the persisted ChromaDB storage directory.
@@ -281,9 +288,9 @@ def get_document_metadata(document_ids: List[str]) -> List[Dict]:
             continue
 
         existing = summaries.get(document_id)
-        page_number = metadata.get("page_number") or 1
+        page_number = _to_int(metadata.get("page", metadata.get("page_number")), 1)
 
-        if existing is None or page_number < existing.get("page_number", 10**9):
+        if existing is None or page_number < _to_int(existing.get("page_number", 10**9), 10**9):
             summaries[document_id] = {
                 "document_id": document_id,
                 "file_name": metadata.get("file_name", "Unknown"),
@@ -338,8 +345,8 @@ def get_document_chunks(document_ids: List[str], max_chunks_per_document: int = 
         chunks = grouped_chunks.get(document_id, [])
         chunks.sort(
             key=lambda chunk: (
-                chunk["metadata"].get("page_number", 0),
-                chunk["metadata"].get("chunk_index", 0)
+                int(chunk["metadata"].get("page", chunk["metadata"].get("page_number", 0)) or 0),
+                int(chunk["metadata"].get("chunk_index", 0) or 0)
             )
         )
 
@@ -353,6 +360,79 @@ def get_document_chunks(document_ids: List[str], max_chunks_per_document: int = 
         ordered_chunks.extend(selected_chunks)
 
     return ordered_chunks
+
+
+def get_chunks_by_page(document_ids: List[str], page_number: int, limit: Optional[int] = None) -> List[Dict]:
+    """
+    Retrieve chunks for a specific page across selected documents.
+
+    Args:
+        document_ids: Selected document IDs
+        page_number: 1-based page number
+        limit: Optional max chunks to return
+
+    Returns:
+        List of chunk dictionaries (text + metadata)
+    """
+    if not document_ids:
+        return []
+
+    collection = get_collection()
+    page_number = int(page_number)
+
+    include = ["documents", "metadatas"]
+    kwargs = {
+        "where": {
+            "$and": [
+                {"document_id": {"$in": document_ids}},
+                {"page": page_number},
+            ]
+        },
+        "include": include,
+    }
+    if limit is not None:
+        kwargs["limit"] = int(limit)
+
+    results = collection.get(**kwargs)
+    documents = results.get("documents", []) or []
+    metadatas = results.get("metadatas", []) or []
+
+    # Backward compatibility for older indexes that stored only page_number as string
+    if not documents:
+        fallback_kwargs = {
+            "where": {
+                "$and": [
+                    {"document_id": {"$in": document_ids}},
+                    {"page_number": str(page_number)},
+                ]
+            },
+            "include": include,
+        }
+        if limit is not None:
+            fallback_kwargs["limit"] = int(limit)
+
+        results = collection.get(**fallback_kwargs)
+        documents = results.get("documents", []) or []
+        metadatas = results.get("metadatas", []) or []
+
+    chunks = []
+    for document, metadata in zip(documents, metadatas):
+        if not metadata:
+            continue
+        chunks.append({
+            "text": document,
+            "metadata": metadata,
+            "relevance_score": 1.0,
+        })
+
+    chunks.sort(
+        key=lambda chunk: (
+            int(chunk["metadata"].get("page", chunk["metadata"].get("page_number", 0)) or 0),
+            int(chunk["metadata"].get("chunk_index", 0) or 0),
+        )
+    )
+
+    return chunks
 
 
 def delete_by_document_id(document_id: str):

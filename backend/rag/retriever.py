@@ -5,11 +5,35 @@ Retrieves relevant document chunks for a given query
 
 from typing import List, Dict
 import logging
+import re
 from .embedder import embed_text
-from .vectordb import query_documents
+from .vectordb import query_documents, get_chunks_by_page
 from .utils import cosine_similarity
 
 logger = logging.getLogger(__name__)
+
+PAGE_QUERY_REGEX = re.compile(r"\bpage(?:\s+number)?\s*(\d+)\b", re.IGNORECASE)
+
+
+def detect_page_query(query: str) -> int | None:
+    """
+    Detect explicit page-based queries such as:
+    - "page 6"
+    - "content on page 6"
+    - "page number 6"
+    """
+    if not query:
+        return None
+
+    match = PAGE_QUERY_REGEX.search(query)
+    if not match:
+        return None
+
+    try:
+        page_number = int(match.group(1))
+        return page_number if page_number > 0 else None
+    except Exception:
+        return None
 
 
 def _to_int(value, default: int | None = None):
@@ -37,7 +61,13 @@ def _parse_bbox(value):
     return None
 
 
-def retrieve(query: str, top_k: int = 5, selected_document_ids: List[str] = None, broad_k: int | None = None) -> List[Dict]:
+def retrieve(
+    query: str,
+    top_k: int = 5,
+    selected_document_ids: List[str] = None,
+    broad_k: int | None = None,
+    page_number: int | None = None,
+) -> List[Dict]:
     """
     Retrieve relevant document chunks for a query.
     
@@ -55,9 +85,40 @@ def retrieve(query: str, top_k: int = 5, selected_document_ids: List[str] = None
             logger.warning("No documents selected for retrieval")
             return []
         
-        # Generate query embedding
-        logger.info(f"Generating embedding for query: {query[:100]}...")
         logger.info(f"Filtering by {len(selected_document_ids)} selected document(s)")
+
+        # Page-aware retrieval path (bypass semantic vector search)
+        if page_number is not None:
+            logger.info(f"Page-aware retrieval for page {page_number}")
+            page_chunks = get_chunks_by_page(
+                document_ids=selected_document_ids,
+                page_number=page_number,
+                limit=max(top_k, broad_k or top_k),
+            )
+
+            retrieved_chunks = []
+            for chunk in page_chunks:
+                metadata = chunk.get("metadata", {})
+                doc_text = chunk.get("text", "")
+                page = _to_int(metadata.get("page", metadata.get("page_number")), page_number) or page_number
+                retrieved_chunks.append({
+                    "text": doc_text,
+                    "metadata": metadata,
+                    "relevance_score": 1.0,
+                    "rerank_score": 1.0,
+                    "score": 1.0,
+                    "doc_name": metadata.get("doc_name", metadata.get("document_name", metadata.get("file_name", "Unknown"))),
+                    "page": page,
+                    "char_start": _to_int(metadata.get("char_start")),
+                    "char_end": _to_int(metadata.get("char_end")),
+                    "bbox": _parse_bbox(metadata.get("bbox")),
+                })
+
+            logger.info(f"Retrieved {len(retrieved_chunks)} chunks via page filter")
+            return retrieved_chunks[:top_k]
+
+        # Semantic retrieval path
+        logger.info(f"Generating embedding for query: {query[:100]}...")
         query_embedding = embed_text(query)
 
         candidate_k = broad_k if broad_k is not None else max(10, top_k * 3)

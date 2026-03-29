@@ -10,8 +10,8 @@ import re
 from .loader import load_document
 from .chunker import chunk_documents
 from .embedder import embed_texts
-from .vectordb import add_documents, get_document_metadata, get_document_chunks
-from .retriever import retrieve, extract_sources
+from .vectordb import add_documents, get_document_metadata, get_document_chunks, get_chunks_by_page
+from .retriever import retrieve, extract_sources, detect_page_query
 from .generator import generate_answer, call_llm_api
 from .utils import clean_candidate_lines, score_sentence_relevance, split_sentences
 
@@ -316,6 +316,50 @@ def _is_word_count_query(question: str) -> bool:
         "count" in question and
         ("word" in question or "words" in question)
     )
+
+
+def _page_exists_in_selected_documents(page_number: int, selected_document_ids: List[str]) -> bool:
+    """
+    Check whether a page number is within range for at least one selected document.
+    """
+    summaries = get_document_metadata(selected_document_ids)
+    for summary in summaries:
+        total_pages = _to_int(summary.get("total_pages"), 0) or 0
+        if total_pages >= page_number:
+            return True
+    return False
+
+
+def _validate_indexed_pages(document_id: str, documents: List[Dict]) -> Dict:
+    """
+    Validate that indexed pages can be retrieved from vector DB by metadata page filter.
+    """
+    expected_pages = sorted({
+        _to_int(doc.get("metadata", {}).get("page", doc.get("metadata", {}).get("page_number")), 0) or 0
+        for doc in documents
+    })
+    expected_pages = [p for p in expected_pages if p > 0]
+
+    pages_with_chunks = []
+    pages_without_chunks = []
+
+    for page in expected_pages:
+        chunks = get_chunks_by_page([document_id], page_number=page, limit=1)
+        if chunks:
+            pages_with_chunks.append(page)
+        else:
+            pages_without_chunks.append(page)
+
+    logger.info(
+        f"Index validation | doc_id={document_id} | pages_with_chunks={pages_with_chunks} | "
+        f"pages_without_chunks={pages_without_chunks}"
+    )
+
+    return {
+        "expected_pages": expected_pages,
+        "pages_with_chunks": pages_with_chunks,
+        "pages_without_chunks": pages_without_chunks,
+    }
 
 
 def classify_query(query: str) -> str:
@@ -686,12 +730,15 @@ async def process_document(file_path: str, file_name: str, document_id: str = No
         logger.info(f"✓ Document processed successfully: {document_id}")
         logger.info(f"✓ Inserted {len(chunks)} chunks into ChromaDB")
         logger.info(f"✓ Sample metadata: {metadatas[0] if metadatas else 'None'}")
+
+        validation = _validate_indexed_pages(document_id, documents)
         
         return {
             "success": True,
             "document_id": document_id,
             "file_name": file_name,
             "chunks_created": len(chunks),
+            "index_validation": validation,
             "message": f"Successfully processed {file_name}"
         }
     
@@ -741,6 +788,44 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
         if metadata_answer:
             logger.info("Answered query directly from document metadata")
             return metadata_answer
+
+        requested_page = detect_page_query(question)
+
+        if requested_page is not None:
+            logger.info(f"Page-specific query detected for page {requested_page}")
+            retrieved_chunks = retrieve(
+                question,
+                top_k=max(10, top_k),
+                selected_document_ids=selected_document_ids,
+                page_number=requested_page,
+            )
+
+            if not retrieved_chunks:
+                if _page_exists_in_selected_documents(requested_page, selected_document_ids):
+                    return {
+                        "success": True,
+                        "answer": "Page exists but content could not be extracted properly.",
+                        "sources": [],
+                        "highlights": [],
+                    }
+
+                return {
+                    "success": True,
+                    "answer": f"No content found for page {requested_page}",
+                    "sources": [],
+                    "highlights": [],
+                }
+
+            result = await generate_answer(question, retrieved_chunks)
+            answer = (result.get("answer") or "").strip()
+            dynamic_sources = await build_dynamic_sources(question, answer, retrieved_chunks, max_sources=max(3, min(5, top_k)))
+            if not dynamic_sources:
+                dynamic_sources = _fallback_sources_from_chunks(retrieved_chunks, limit=2)
+
+            result["sources"] = dynamic_sources
+            result["highlights"] = extract_highlights_from_sources(dynamic_sources)
+            result["success"] = True
+            return result
 
         if _is_summary_query(question):
             logger.info("Summary query detected - using document-wide context")

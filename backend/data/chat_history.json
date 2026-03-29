@@ -2,88 +2,500 @@
   "messages": [
     {
       "role": "user",
-      "content": "give details about his experience",
-      "timestamp": "2026-03-24T19:51:40.032336"
+      "content": "name of student",
+      "timestamp": "2026-03-29T12:39:33.393923"
     },
     {
       "role": "assistant",
-      "content": "Puli Bhavishwa Reddy has experience in both contributing to a startup and leading a project as an intern. Here are the details:\n\n1. **StaySync (A Hostel Management Startup)**\n   - Contributed to the development of a web and mobile-based hostel management system.\n   - Used technologies such as ReactJS, Node.js, MongoDB, and Capacitor.\n   - Improved operational transparency and reduced manual workload for students and administrators.\n\n2. **Web and App Developer Intern (Bandiwala)**\n   - Led the end-to-end development of Bandiwala's web (Next.js) and mobile (Flutter) platforms.\n   - Designed scalable front-end architectures and integrated RESTful APIs for seamless cross-platform functionality.\n   - Managed the complete project lifecycle from planning to production deployment.\n\nThese details are sourced directly from the provided document excerpt.",
-      "timestamp": "2026-03-24T19:51:59.627718",
+      "content": "The name of the student is GOPIDI RISHITH REDDY, S/O GOPIDI RAMANA REDDY. This information is from the Hall Ticket (3).pdf document excerpt.",
+      "timestamp": "2026-03-29T12:39:48.454677",
       "sources": [
         {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
+          "doc": "HallTicket (3).pdf",
+          "file": "HallTicket (3).pdf",
           "page": 1,
-          "text": "He contributed to the development of a web and mobile-based hostel management system at StaySync, a Hostel Management Startup.",
-          "score": 0.4294406635618891,
-          "query_similarity": 0.3234392575481272,
-          "answer_similarity": 0.6682914659625422,
+          "text": "None of the sentences in the provided text are directly relevant to the query about the name of the student.",
+          "score": 0.5276084327167978,
+          "query_similarity": 0.6253806188990731,
+          "answer_similarity": 0.48784533290244536,
           "bbox": null
         },
         {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
+          "doc": "HallTicket (3).pdf",
+          "file": "HallTicket (3).pdf",
           "page": 1,
-          "text": "Puli Bhavishwa Reddy has experience in both contributing to a startup and leading a project as an intern.",
-          "score": 0.41358308749136646,
-          "query_similarity": 0.3683002616371131,
-          "answer_similarity": 0.5443886168003167,
-          "bbox": null
-        },
-        {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
-          "page": 1,
-          "text": "He designed scalable front-end architectures and integrated RESTful APIs for seamless cross-platform functionality.",
-          "score": 0.3797565555120436,
-          "query_similarity": 0.33668524526451116,
-          "answer_similarity": 0.5083228684282737,
-          "bbox": null
-        },
-        {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
-          "page": 1,
-          "text": "His contribution improved operational transparency and reduced manual workload for students and administrators.",
-          "score": 0.28729563543043773,
-          "query_similarity": 0.3535114809287267,
-          "answer_similarity": 0.19708633945616783,
+          "text": "examination will automatically lead to disqualification.",
+          "score": 0.3188943076773962,
+          "query_similarity": 0.3188943076773962,
+          "answer_similarity": 0.0,
           "bbox": null
         }
       ],
       "highlights": [
         {
-          "doc_name": "resume_job.pdf",
+          "doc_name": "HallTicket (3).pdf",
           "page": 1,
-          "text": "He contributed to the development of a web and mobile-based hostel management system at StaySync, a Hostel Management Startup.",
-          "score": 0.4294406635618891,
+          "text": "None of the sentences in the provided text are directly relevant to the query about the name of the student.",
+          "score": 0.5276084327167978,
           "char_start": null,
           "char_end": null,
           "bbox": null
         },
         {
-          "doc_name": "resume_job.pdf",
+          "doc_name": "HallTicket (3).pdf",
           "page": 1,
-          "text": "Puli Bhavishwa Reddy has experience in both contributing to a startup and leading a project as an intern.",
-          "score": 0.41358308749136646,
+          "text": "examination will automatically lead to disqualification.",
+          "score": 0.3188943076773962,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "give summary of document",
+      "timestamp": "2026-03-29T12:39:55.939870"
+    },
+    {
+      "role": "assistant",
+      "content": "The document is a Hall Ticket for a Sessional Examination-I, dated for March 2026. It includes the following key information:\n\n- **Exam Timing**: The examination will take place from 2:00 PM to 4:00 PM.\n- **Candidate Details**: GOPIDI RISHITH REDDY, son of GOPIDI RAMANA REDDY, and GOPIDI MOUNIKA.\n- **Branch Name**: UG-AID.\n- **Regulation**: UG-R22.\n- **Examination Schedule**:\n  - 02-03-2026: ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY\n  - 04-03-2026: WEB TECHNOLOGIES LABORATORY\n  - 05-03-2026: PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR\n  - 06-03-2026: ENSEMBLE MODELS AND FEATURE ENGINEERING\n  - 07-03-2026: 3D PRINTING AND DESIGN\n  - 09-03-2026: ANCIENT WISDOM\n\nThe document also provides instructions for candidates, including:\n- Entering the examination hall with a proper hall-ticket.\n- Arriving at least 30 minutes before the exam starts.\n- Not entering or leaving the hall after the exam begins.\n- Not bringing any printed/written material into the hall except the hall-ticket.\n- Carrying scientific calculators, pens, pencils, and other allowed instruments.\n- Not bringing books, loose papers, log tables, mobile phones, smartwatches, electronics gadgets, or wallets into the hall.\n- Following examination regulations to avoid malpractice.\n- Checking all pages in the answer booklet and writing answers only within the given booklet.\n- Remaining seated until the number of answer booklets matches the number of candidates.\n- Verifying all particulars on the hall ticket and cross-checking information on the Eduprime Portal.\n\n[Document: HallTicket (3).pdf]",
+      "timestamp": "2026-03-29T12:40:19.157955",
+      "sources": [
+        {
+          "doc": "HallTicket (3).pdf",
+          "file": "HallTicket (3).pdf",
+          "page": 1,
+          "text": "All answers are to be written within the given booklet only and no additional sheets will be provided.",
+          "score": 1.0,
+          "query_similarity": 0.3270121937009005,
+          "answer_similarity": 0.31050890211102894,
+          "bbox": null
+        },
+        {
+          "doc": "HallTicket (3).pdf",
+          "file": "HallTicket (3).pdf",
+          "page": 1,
+          "text": "SUBJECT: the Invigilator Hall Ticket for Sessional Examination-I EXAM TIMING : AN : 2.00 PM - 4:00 PM INSTRUCTIONS TO THE CANDIDATE Month &Year of Exam : Mar-2026 HT NO : 23071A7225 - GOPIDI RISHITH REDDY S/O GOPIDI RAMANA REDDY - GOPIDI MOUNIKA Branch Name : UG-AID Regulation : UG-R22 S.No Year Sem Subject Code Sub Name Date of Exam Signature of the Invigilator 1 III II 22HS2EN301 ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY 2 III II 22PC2CS302 WEB TECHNOLOGIES LABORATORY 3 III II 22PC2DS303 BIG DATA COMPUTING TECHNOLOGIES LABORATORY 4 III II 22PW4AD301 INTERNSHIP 5 III II 22PC1DS303 BIG DATA COMPUTING TECHNOLOGIES 02-03-2026 AN 6 III II 22PC1CS302 WEB TECHNOLOGIES 04-03-2026 AN 7 III II 22HS1MG301 PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR 05-03-2026 AN 8 III II 22PE1DS302 ENSEMBLE MODELS AND FEATURE ENGINEERING 06-03-2026 AN",
+          "score": 1.0,
+          "query_similarity": 0.0,
+          "answer_similarity": 0.0,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "HallTicket (3).pdf",
+          "page": 1,
+          "text": "All answers are to be written within the given booklet only and no additional sheets will be provided.",
+          "score": 1.0,
           "char_start": null,
           "char_end": null,
           "bbox": null
         },
         {
-          "doc_name": "resume_job.pdf",
+          "doc_name": "HallTicket (3).pdf",
           "page": 1,
-          "text": "He designed scalable front-end architectures and integrated RESTful APIs for seamless cross-platform functionality.",
-          "score": 0.3797565555120436,
+          "text": "SUBJECT: the Invigilator Hall Ticket for Sessional Examination-I EXAM TIMING : AN : 2.00 PM - 4:00 PM INSTRUCTIONS TO THE CANDIDATE Month &Year of Exam : Mar-2026 HT NO : 23071A7225 - GOPIDI RISHITH REDDY S/O GOPIDI RAMANA REDDY - GOPIDI MOUNIKA Branch Name : UG-AID Regulation : UG-R22 S.No Year Sem Subject Code Sub Name Date of Exam Signature of the Invigilator 1 III II 22HS2EN301 ADVANCED ENGLISH COMMUNICATION SKILLS LABORATORY 2 III II 22PC2CS302 WEB TECHNOLOGIES LABORATORY 3 III II 22PC2DS303 BIG DATA COMPUTING TECHNOLOGIES LABORATORY 4 III II 22PW4AD301 INTERNSHIP 5 III II 22PC1DS303 BIG DATA COMPUTING TECHNOLOGIES 02-03-2026 AN 6 III II 22PC1CS302 WEB TECHNOLOGIES 04-03-2026 AN 7 III II 22HS1MG301 PRINCIPLES OF MANAGEMENT AND ORGANIZATIONAL BEHAVIOR 05-03-2026 AN 8 III II 22PE1DS302 ENSEMBLE MODELS AND FEATURE ENGINEERING 06-03-2026 AN",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "give summary about this book",
+      "timestamp": "2026-03-29T12:41:19.952311"
+    },
+    {
+      "role": "assistant",
+      "content": "\"Rich Dad Poor Dad\" by Robert T. Kiyosaki is a book that explores financial education and the differences between the financial philosophies of Kiyosaki's two fathers: his biological father (the \"poor dad\") and his friend's father (the \"rich dad\"). The book emphasizes the importance of financial literacy and understanding the difference between assets and liabilities. Key themes include:\n\n1. **Understanding Assets vs. Liabilities**: The rich dad teaches that assets generate income, whereas liabilities drain it. Examples include real estate as an asset versus a mortgage as a liability.\n\n2. **Financial Intelligence**: Kiyosaki argues that financial intelligence is crucial for financial success, involving skills such as accounting, investing, understanding markets, and knowing the law.\n\n3. **Education and Learning**: The book highlights the importance of continuous learning and acquiring knowledge beyond traditional schooling. It encourages readers to learn \"a little about a lot\" rather than specializing deeply in one field.\n\n4. **Accounting and Investing**: Basic financial literacy, including reading financial statements and understanding investments, is emphasized as essential for building wealth.\n\n5. **Failure and Risk-Taking**: The rich dad encourages embracing failure as a learning opportunity, contrasting this with the fear-driven mindset of the poor and middle class.\n\n6. **Real Estate Investment**: Real estate is presented as a powerful tool for building wealth, with strategies for finding undervalued properties and managing them effectively.\n\n7. **Cultural and Economic Context**: The book discusses broader economic issues, such as the impact of government policies on financial outcomes and the need for financial education to navigate these challenges.\n\nKiyosaki uses personal anecdotes and examples to illustrate these points, drawing from his experiences growing up with two different financial mindsets. The book aims to inspire readers to rethink their approach to money and financial planning.\n\n[Source: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
+      "timestamp": "2026-03-29T12:43:18.426198",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 19,
+          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" It describes a childhood experience unrelated to financial education or the book's themes.",
+          "score": 1.0,
+          "query_similarity": 0.47209200826315834,
+          "answer_similarity": 0.7279488779503237,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 196,
+          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" Please provide the correct book text for an accurate summary.",
+          "score": 1.0,
+          "query_similarity": 0.49828294110338056,
+          "answer_similarity": 0.5745014988406901,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 112,
+          "text": "In the final chapter of this book, I offer 10 steps that I followed on the road to my financial freedom.",
+          "score": 1.0,
+          "query_similarity": 0.42657112004053543,
+          "answer_similarity": 0.33670941794923775,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 19,
+          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" It describes a childhood experience unrelated to financial education or the book's themes.",
+          "score": 1.0,
           "char_start": null,
           "char_end": null,
           "bbox": null
         },
         {
-          "doc_name": "resume_job.pdf",
-          "page": 1,
-          "text": "His contribution improved operational transparency and reduced manual workload for students and administrators.",
-          "score": 0.28729563543043773,
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 196,
+          "text": "This text does not appear to be relevant to the query about summarizing \"Rich Dad Poor Dad.\" Please provide the correct book text for an accurate summary.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 112,
+          "text": "In the final chapter of this book, I offer 10 steps that I followed on the road to my financial freedom.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what are the contents present in the book i mean lessons",
+      "timestamp": "2026-03-29T12:45:22.791782"
+    },
+    {
+      "role": "assistant",
+      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki contains six main lessons, which are repeated over 30 years. These lessons are meant to serve as guideposts to help readers and their children grow wealthier in a world of increasing change and uncertainty. While the specific details of these lessons are not fully detailed in the provided excerpts, the book aims to teach fundamental concepts related to personal finance and investing, particularly focusing on converting earned income into passive and portfolio income. For a comprehensive understanding of these lessons, one would need to read the full book.\n\nSource Attribution: \n- Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf [Page: 17]",
+      "timestamp": "2026-03-29T12:45:37.607090",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "This book is about those six lessons, put as simply as possible.",
+          "score": 0.5552341915214687,
+          "query_similarity": 0.7963774461599613,
+          "answer_similarity": 0.3214877536587107,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "The lessons are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.",
+          "score": 0.5545968313197014,
+          "query_similarity": 0.4034044357120107,
+          "answer_similarity": 0.5457380479346103,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "six main lessons, repeated over 30 years.",
+          "score": 0.5545968313197014,
+          "query_similarity": 0.559893184906047,
+          "answer_similarity": 0.20692251423615304,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.5105877030002622,
+          "query_similarity": 0.52226634573578,
+          "answer_similarity": 0.6194842106147099,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 173,
+          "text": "educational products are created to teach the same skills my rich dad taught me, the skills of converting earned income into passive and portfolio income.",
+          "score": 0.3841761412237906,
+          "query_similarity": 0.30002938862466233,
+          "answer_similarity": 0.5796597363222414,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "This book is about those six lessons, put as simply as possible.",
+          "score": 0.5552341915214687,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "The lessons are meant not to be answers, but guideposts that will assist you and your children to grow wealthier no matter what happens in a world of increasing change and uncertainty.",
+          "score": 0.5545968313197014,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 17,
+          "text": "six main lessons, repeated over 30 years.",
+          "score": 0.5545968313197014,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.5105877030002622,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 173,
+          "text": "educational products are created to teach the same skills my rich dad taught me, the skills of converting earned income into passive and portfolio income.",
+          "score": 0.3841761412237906,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what are the contents present in the book",
+      "timestamp": "2026-03-29T12:45:50.285791"
+    },
+    {
+      "role": "assistant",
+      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki covers several key contents and themes:\n\n1. **Six Main Lessons**: The book is based on six main lessons that the author learned over 30 years, as taught by his \"rich dad.\" These lessons are intended to guide readers and their children to grow wealthier in a world of increasing change and uncertainty. (Source: [Page: 17, Section: Unknown])\n\n2. **Mental, Emotional, and Educational Process**: It details the author's journey in following his rich dad's advice, focusing on the process of changing quadrants from E and S (Employee and Self-Employed) to B and I (Business Owner and Investor). (Source: [Page: 209, Section: Unknown])\n\n3. **CASHFLOW Quadrant**: The book explains the CASHFLOW Quadrant, which categorizes people into four groups based on their sources of income: E (Employee), S (Self-Employed), B (Business Owner), and I (Investor). It highlights the differences between these groups and why certain people might gravitate towards one over the others. (Source: [Page: 211, Section: Unknown])\n\n4. **Personal Change and Financial Intelligence**: The second part of the book emphasizes personal change and the importance of financial intelligence. It discusses the qualities and mindset required to move from the E and S quadrants to the B and I quadrants. (Source: [Page: 211, Section: Unknown])\n\n5. **Opportunities in the Information Age**: The book also addresses the opportunities available in the Information Age, suggesting that individuals with the skills of B\u2019s and I\u2019s can identify and seize these opportunities to achieve financial freedom. (Source: [Page: 211, Section: Unknown])\n\nThese contents are designed to help readers understand and navigate the financial landscape, moving towards greater wealth and financial freedom.",
+      "timestamp": "2026-03-29T12:46:13.668043",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.48056401257365206,
+          "query_similarity": 0.48087982783114175,
+          "answer_similarity": 0.5874017050771816,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 4,
+          "text": "The book \"Rich Dad Poor Dad\" by Robert T. K.iyosaki covers several key contents and themes, including the CASHFLOW Quadrant, personal change and financial intelligence, and opportunities in the Information Age.",
+          "score": 0.46925807791597185,
+          "query_similarity": 0.3302621287607829,
+          "answer_similarity": 0.7731218014337045,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "The second part of this book is about personal change. It\u2019s more about who you have to be, instead of what you have to do.",
+          "score": 0.4536421793383373,
+          "query_similarity": 0.5463081738886931,
+          "answer_similarity": 0.4164007179060676,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is for people who are ready to move beyond job security and begin to achieve financial security.",
+          "score": 0.36339513407206536,
+          "query_similarity": 0.33830630293763464,
+          "answer_similarity": 0.4059237902988004,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "This book is written for people who are ready to make changes in their lives to move beyond job security and begin to build their own pipelines to achieve financial freedom.",
+          "score": 0.36125887489768427,
+          "query_similarity": 0.35886069820569166,
+          "answer_similarity": 0.4458352960847197,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.48056401257365206,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 4,
+          "text": "The book \"Rich Dad Poor Dad\" by Robert T. K.iyosaki covers several key contents and themes, including the CASHFLOW Quadrant, personal change and financial intelligence, and opportunities in the Information Age.",
+          "score": 0.46925807791597185,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "The second part of this book is about personal change. It\u2019s more about who you have to be, instead of what you have to do.",
+          "score": 0.4536421793383373,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is for people who are ready to move beyond job security and begin to achieve financial security.",
+          "score": 0.36339513407206536,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "This book is written for people who are ready to make changes in their lives to move beyond job security and begin to build their own pipelines to achieve financial freedom.",
+          "score": 0.36125887489768427,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what are the chapters present in this book",
+      "timestamp": "2026-03-29T12:47:47.414226"
+    },
+    {
+      "role": "assistant",
+      "content": "The book \"Rich Dad Poor Dad\" by Robert T. Kiyosaki is divided into three parts, and the chapters present are as follows:\n\n**Part One: THE CASHFLOW QUADRANT**\n- Chapter One: Why Don\u2019t You Get a Job?\n- Chapter Two: Different Quadrants, Different People\n- Chapter Three: Why People Choose Security over Freedom\n- Chapter Four: The Three Kinds of Business Systems\n- Chapter Five: The Five Levels of Investors\n- Chapter Six: You Cannot See Money with Your Eyes\n\n**Part Two: BRINGING OUT THE BEST IN YOU**\n- Chapter Seven: Becoming Who You Are\n- Chapter Eight: How Do I Get Rich?\n- Chapter Nine: Be the Bank, Not the Banker\n\n**Part Three: HOW TO BECOME A SUCCESSFUL B AND I**\n- Chapter Ten: Take Baby Steps\n- Chapter Eleven: Step 1: It\u2019s Time to Mind Your Own Business\n- Chapter Twelve: Step 2: Take Control of Your Cash Flow\n- Chapter Thirteen: Step 3: Know the Difference Between Risk and Risky\n- Chapter Fourteen: Step 4: Decide What Kind of Investor You Want to Be\n- Chapter Fifteen: Step 5: Seek Mentors\n- Chapter Sixteen: Step 6: Make Disappointment Your Strength\n- Chapter Seventeen: Step 7: The Power of Faith\n- Chapter Eighteen: In Summary\n\nThese chapter titles are extracted directly from the provided document excerpts.",
+      "timestamp": "2026-03-29T12:48:17.338821",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.45871014811504046,
+          "query_similarity": 0.41840868404497406,
+          "answer_similarity": 0.6346015764183424,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "Part Two The second part of this book is about personal change.",
+          "score": 0.4509012103340781,
+          "query_similarity": 0.546126039628754,
+          "answer_similarity": 0.4172017438364991,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 190,
+          "text": "Chapter Eight How Do I Get Rich?",
+          "score": 0.43017956122111906,
+          "query_similarity": 0.41363067621940597,
+          "answer_similarity": 0.5634683980012736,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 190,
+          "text": "Chapter Nine Be the Bank, Not the Banker",
+          "score": 0.39327499107324027,
+          "query_similarity": 0.4092586595932746,
+          "answer_similarity": 0.4648970808483977,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "Part One The first part of this book focuses on the core differences between people in the four quadrants.",
+          "score": 0.3720209252733371,
+          "query_similarity": 0.47266218968353974,
+          "answer_similarity": 0.2988400982292173,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 209,
+          "text": "This book is about the mental, emotional, and educational process I went through in following my rich dad\u2019s advice.",
+          "score": 0.45871014811504046,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "Part Two The second part of this book is about personal change.",
+          "score": 0.4509012103340781,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 190,
+          "text": "Chapter Eight How Do I Get Rich?",
+          "score": 0.43017956122111906,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 190,
+          "text": "Chapter Nine Be the Bank, Not the Banker",
+          "score": 0.39327499107324027,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 211,
+          "text": "Part One The first part of this book focuses on the core differences between people in the four quadrants.",
+          "score": 0.3720209252733371,
           "char_start": null,
           "char_end": null,
           "bbox": null
