@@ -15,6 +15,7 @@ import subprocess
 import base64
 import mimetypes
 import os
+import io
 
 from PIL import Image, ImageOps
 import requests
@@ -283,9 +284,9 @@ def describe_image(image_path: str) -> str:
 
 def describe_image_with_vision(image_path: str) -> str:
     """
-    Vision fallback using OpenRouter multimodal API with base64 image_url.
+    Vision analysis using OpenRouter multimodal API with base64 image_url.
 
-    Returns a concise object-focused description.
+    Returns structured visual understanding.
     """
     api_key = os.getenv("OPENROUTER_API_KEY", "")
     if not api_key:
@@ -305,8 +306,20 @@ def describe_image_with_vision(image_path: str) -> str:
                         {
                             "type": "text",
                             "text": (
-                                "Identify all objects clearly visible in this image. "
-                                "State the main subject explicitly. Keep it short and specific."
+                                "Analyze the image carefully.\n\n"
+                                "Instructions:\n"
+                                "- Identify all visible objects and elements\n"
+                                "- If chart -> extract values and compare\n"
+                                "- If diagram -> explain flow and relationships\n"
+                                "- If real image -> describe objects clearly\n"
+                                "- DO NOT rely only on text\n"
+                                "- DO NOT say 'unknown' unless truly unclear\n\n"
+                                "Return structured output:\n"
+                                "1. Image Type\n"
+                                "2. Key Elements\n"
+                                "3. Relationships / Structure\n"
+                                "4. Core Meaning\n"
+                                "5. Interpretation"
                             ),
                         },
                         {
@@ -371,53 +384,168 @@ def describe_image_with_vision(image_path: str) -> str:
         return describe_image(image_path)
 
 
+def describe_pdf_page_with_vision(pdf_path: str, page_num: int) -> str:
+    """
+    Analyze a specific PDF page visually using the same multimodal model.
+    """
+    api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if not api_key or convert_from_path is None:
+        return ""
+
+    try:
+        images = convert_from_path(
+            pdf_path,
+            first_page=page_num,
+            last_page=page_num,
+            dpi=200,
+            thread_count=1,
+        )
+        if not images:
+            return ""
+
+        buffer = io.BytesIO()
+        images[0].save(buffer, format="PNG")
+        image_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+        payload = {
+            "model": "qwen/qwen-2.5-vl-7b-instruct",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Analyze the image carefully.\n\n"
+                                "Instructions:\n"
+                                "- Identify all visible objects and elements\n"
+                                "- If chart -> extract values and compare\n"
+                                "- If diagram -> explain flow and relationships\n"
+                                "- If real image -> describe objects clearly\n"
+                                "- DO NOT rely only on text\n"
+                                "- DO NOT say 'unknown' unless truly unclear\n\n"
+                                "Return structured output:\n"
+                                "1. Image Type\n"
+                                "2. Key Elements\n"
+                                "3. Relationships / Structure\n"
+                                "4. Core Meaning\n"
+                                "5. Interpretation"
+                            ),
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image_b64}"
+                            },
+                        },
+                    ],
+                }
+            ],
+            "max_tokens": 350,
+            "temperature": 0.1,
+        }
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Multi-Document RAG",
+        }
+
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=45,
+        )
+
+        if response.status_code != 200:
+            logger.warning(f"PDF page vision failed: {response.status_code} {response.text[:200]}")
+            return ""
+
+        data = response.json()
+        if "choices" not in data or not data["choices"]:
+            return ""
+
+        message = data["choices"][0].get("message", {})
+        content = message.get("content", "")
+
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    txt = item.get("text") or item.get("content") or ""
+                    if txt:
+                        parts.append(str(txt))
+                elif isinstance(item, str):
+                    parts.append(item)
+            content = "\n".join(parts)
+
+        return str(content or "").strip()
+    except Exception as e:
+        logger.warning(f"PDF page vision analysis failed (page {page_num}): {str(e)}")
+        return ""
+
+
+def _clean_ocr_text(text: str) -> str:
+    cleaned = (text or "").replace("\u200b", " ")
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
+
+
+def _extract_detected_elements(vision_text: str) -> str:
+    lines = [ln.strip(" -•\t") for ln in (vision_text or "").splitlines() if ln and ln.strip()]
+    if not lines:
+        return "No distinct visual elements were extracted."
+    if len(lines) <= 6:
+        return "\n".join(lines)
+    return "\n".join(lines[:6])
+
+
 def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dict[str, any]]:
     """
     Extract text from an image document using OCR and return loader-compatible structure.
     """
-    if pytesseract is None:
-        raise Exception("pytesseract is not installed. Please install OCR dependencies.")
-
     try:
-        ocr_warning = ""
+        # Vision-first pipeline: Vision -> OCR -> Fusion
+        vision_caption = describe_image_with_vision(file_path)
+        if not vision_caption:
+            vision_caption = "Image contains visible objects but visual analysis was limited."
 
-        # OCR pipeline: Tesseract -> EasyOCR
-        ocr_result = extract_text_from_image(file_path)
-        text = ocr_result["text"]
+        logger.info(f"Vision analysis executed for image file: {file_name}")
+
+        # OCR remains a supporting signal
+        if pytesseract is None and easyocr is None:
+            ocr_result = {"text": "", "engine": "none", "boxes": []}
+        else:
+            ocr_result = extract_text_from_image(file_path)
+
+        ocr_text = _clean_ocr_text(ocr_result["text"])
         ocr_engine = ocr_result["engine"]
         ocr_boxes = ocr_result.get("boxes", [])
+        logger.info(f"Image OCR stats | file={file_name} | engine={ocr_engine} | ocr_len={len(ocr_text)}")
 
         with Image.open(file_path) as img:
             image_width, image_height = img.size
 
-        # Detect OCR failure/non-informative OCR for non-text images
-        stripped = (text or "").strip()
-        alpha_words = re.findall(r"\b[a-zA-Z]{3,}\b", stripped)
-        no_text = len(stripped) < 10 or len(alpha_words) < 2
-        vision_used = False
-        has_visual_context = False
-
-        # Use vision fallback when OCR is weak/empty
-        if no_text:
-            vision_used = True
-            has_visual_context = True
-            ocr_warning = "OCR weak/empty; using vision fallback"
-            text = describe_image_with_vision(file_path)
-            if not text or not text.strip():
-                text = "Image contains visible objects, but detailed identification failed."
-
-        # Always keep extracted text available for downstream LLM reasoning
-        final_text = text.strip()
+        no_text = len(ocr_text) < 8
+        detected_elements = _extract_detected_elements(vision_caption)
+        final_text = (
+            "IMAGE ANALYSIS\n\n"
+            f"Visual Description:\n{vision_caption}\n\n"
+            f"Detected Elements:\n{detected_elements}\n\n"
+            f"OCR Text:\n{ocr_text if ocr_text else '[No reliable OCR text detected]'}\n"
+        ).strip()
 
         entity_data = extract_entities(final_text)
         primary_entity = entity_data["primary_entity"]
         entity_header = f"SUBJECT: {primary_entity}\n"
         enriched_text = "Image Content:\n" + entity_header + "\n" + final_text
 
-        if ocr_warning:
-            logger.warning(f"🖼️ {file_name} | OCR warning: {ocr_warning}")
-        else:
-            logger.info(f"🖼️ {file_name} | OCR text extracted | Primary Entity: {primary_entity}")
+        logger.info(
+            f"🖼️ {file_name} | vision_used=True | has_visual_context=True | "
+            f"ocr_len={len(ocr_text)} | primary_entity={primary_entity}"
+        )
 
         return [{
             "text": enriched_text,
@@ -428,14 +556,16 @@ def process_image(file_path: str, file_name: str, lang: str = "eng") -> List[Dic
                 "total_pages": 1,
                 "file_type": "image",
                 "ocr_used": True,
-                "ocr_warning": ocr_warning or "",
+                "ocr_warning": "OCR weak/empty" if no_text else "",
                 "ocr_engine": ocr_engine,
-                "has_visual_context": has_visual_context,
+                "has_visual_context": True,
                 "has_text": not no_text,
-                "vision_used": vision_used,
+                "vision_used": True,
                 "bbox": ",".join(str(v) for v in (ocr_boxes[0]["bbox"] if ocr_boxes else [])),
                 "bbox_image_width": str(image_width),
                 "bbox_image_height": str(image_height),
+                "source_image_path": file_path,
+                "vision_caption": vision_caption,
                 "primary_entity": primary_entity,
                 "entities": entity_data["entities"],
                 "entity_persons": entity_data["entities"]["persons"],
@@ -762,6 +892,13 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
                 except Exception as ocr_error:
                     logger.warning(f"{file_name} | Page {page_num}: OCR fallback failed: {str(ocr_error)}")
 
+            vision_summary = describe_pdf_page_with_vision(file_path, page_num)
+            if vision_summary:
+                extracted_text = (
+                    f"{extracted_text}\n\n"
+                    f"PAGE VISUAL ANALYSIS:\n{vision_summary}"
+                ).strip()
+
             page_texts.append(extracted_text)
             page_ocr_used.append(used_ocr)
 
@@ -808,6 +945,8 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
                     "pdf_title": pdf_title,
                     "file_type": "pdf",
                     "ocr_used": page_ocr_used[page_num - 1],
+                    "has_visual_context": bool("PAGE VISUAL ANALYSIS:" in text),
+                    "source_pdf_path": file_path,
                     "text_length": len(original_text.strip()),
                     # Entity extraction results
                     "primary_entity": primary_entity,

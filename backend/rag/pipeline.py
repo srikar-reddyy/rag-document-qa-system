@@ -330,6 +330,23 @@ def _page_exists_in_selected_documents(page_number: int, selected_document_ids: 
     return False
 
 
+def _is_direct_image_qa(selected_document_ids: List[str]) -> bool:
+    """
+    Detect single-image selection and bypass vector similarity retrieval.
+    """
+    if not selected_document_ids or len(selected_document_ids) != 1:
+        return False
+
+    try:
+        chunks = get_document_chunks(selected_document_ids, max_chunks_per_document=1)
+        if not chunks:
+            return False
+        metadata = chunks[0].get("metadata", {}) or {}
+        return (metadata.get("file_type") or "").lower() == "image"
+    except Exception:
+        return False
+
+
 def _validate_indexed_pages(document_id: str, documents: List[Dict]) -> Dict:
     """
     Validate that indexed pages can be retrieved from vector DB by metadata page filter.
@@ -812,6 +829,33 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
                 return {
                     "success": True,
                     "answer": f"No content found for page {requested_page}",
+                    "sources": [],
+                    "highlights": [],
+                }
+
+            result = await generate_answer(question, retrieved_chunks)
+            answer = (result.get("answer") or "").strip()
+            dynamic_sources = await build_dynamic_sources(question, answer, retrieved_chunks, max_sources=max(3, min(5, top_k)))
+            if not dynamic_sources:
+                dynamic_sources = _fallback_sources_from_chunks(retrieved_chunks, limit=2)
+
+            result["sources"] = dynamic_sources
+            result["highlights"] = extract_highlights_from_sources(dynamic_sources)
+            result["success"] = True
+            return result
+
+        # Direct image QA path (vision-first): skip semantic similarity retrieval
+        if _is_direct_image_qa(selected_document_ids):
+            logger.info("Direct image QA path activated (single image document selected)")
+            retrieved_chunks = get_document_chunks(
+                selected_document_ids,
+                max_chunks_per_document=3,
+            )
+
+            if not retrieved_chunks:
+                return {
+                    "success": True,
+                    "answer": "No visual information found for the selected image.",
                     "sources": [],
                     "highlights": [],
                 }

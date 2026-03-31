@@ -10,6 +10,13 @@ import logging
 import json
 from typing import AsyncIterator
 import re
+import base64
+import mimetypes
+
+try:
+    from pdf2image import convert_from_path
+except ImportError:
+    convert_from_path = None
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +115,7 @@ async def _continue_missing_points(
     partial_answer: str,
     requested_points: int,
     model_name: str,
+    image_data_urls: List[str] | None = None,
 ) -> str:
     """
     If model stopped early, request only the remaining numbered points.
@@ -138,11 +146,18 @@ Already generated points:
 {partial_answer}
 """.strip()
 
+    continuation_messages = _build_llm_messages(
+        continuation_prompt,
+        image_data_urls=image_data_urls or [],
+        force_image_instructions=bool(image_data_urls),
+    )
+
     continuation = await call_llm_api(
         continuation_prompt,
         model=model_name,
         max_tokens=780,
         temperature=0.2,
+        messages=continuation_messages,
     )
 
     merged = f"{partial_answer.strip()}\n\n{continuation.strip()}".strip()
@@ -150,14 +165,141 @@ Already generated points:
 
 
 def _select_model_for_query(query: str, retrieved_chunks: List[Dict]) -> str:
-    q = (query or "").lower()
-    image_query = any(k in q for k in ["image", "figure", "diagram", "photo", "screenshot"])
     has_image_chunks = any(
         (chunk.get("metadata", {}) or {}).get("file_type") == "image"
-        or (chunk.get("metadata", {}) or {}).get("has_visual_context")
         for chunk in (retrieved_chunks or [])
     )
-    return "qwen/qwen-2.5-vl-7b-instruct" if (image_query or has_image_chunks) else "qwen/qwen-2.5-7b-instruct"
+    return "qwen/qwen-2.5-vl-7b-instruct" if has_image_chunks else "qwen/qwen-2.5-7b-instruct"
+
+
+def _build_image_analysis_instructions() -> str:
+    return (
+        "Analyze the image carefully.\n\n"
+        "Instructions:\n"
+        "- Identify all visible objects and elements\n"
+        "- If chart -> extract values and compare\n"
+        "- If diagram -> explain flow and relationships\n"
+        "- If real image -> describe objects clearly\n"
+        "- DO NOT rely only on text\n"
+        "- DO NOT say 'unknown' unless truly unclear\n\n"
+        "Return structured output:\n"
+        "1. Image Type\n"
+        "2. Key Elements\n"
+        "3. Relationships / Structure\n"
+        "4. Core Meaning\n"
+        "5. Interpretation"
+    )
+
+
+def _image_file_to_data_url(image_path: str) -> str | None:
+    try:
+        if not image_path or not os.path.exists(image_path):
+            return None
+        mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+        with open(image_path, "rb") as f:
+            image_b64 = base64.b64encode(f.read()).decode("utf-8")
+        return f"data:{mime_type};base64,{image_b64}"
+    except Exception as e:
+        logger.warning(f"Failed to encode image path {image_path}: {str(e)}")
+        return None
+
+
+def _pdf_page_to_data_url(pdf_path: str, page_number: int) -> str | None:
+    if convert_from_path is None:
+        return None
+
+    try:
+        if not pdf_path or not os.path.exists(pdf_path):
+            return None
+
+        images = convert_from_path(
+            pdf_path,
+            first_page=max(1, int(page_number)),
+            last_page=max(1, int(page_number)),
+            dpi=200,
+            thread_count=1,
+        )
+        if not images:
+            return None
+
+        import io
+        buffer = io.BytesIO()
+        images[0].save(buffer, format="PNG")
+        image_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
+        return f"data:image/png;base64,{image_b64}"
+    except Exception as e:
+        logger.warning(f"Failed to encode PDF page image {pdf_path}#p{page_number}: {str(e)}")
+        return None
+
+
+def _collect_image_data_urls(retrieved_chunks: List[Dict], max_images: int = 2) -> List[str]:
+    urls: List[str] = []
+    seen = set()
+
+    for chunk in (retrieved_chunks or []):
+        metadata = chunk.get("metadata", {}) or {}
+        file_type = (metadata.get("file_type") or "").lower()
+
+        data_url = None
+        if file_type == "image":
+            image_path = metadata.get("source_image_path")
+            data_url = _image_file_to_data_url(image_path)
+        elif file_type == "pdf" and metadata.get("has_visual_context"):
+            pdf_path = metadata.get("source_pdf_path")
+            page_number = int(metadata.get("page", metadata.get("page_number", 1)) or 1)
+            data_url = _pdf_page_to_data_url(pdf_path, page_number)
+
+        if not data_url:
+            continue
+        if data_url in seen:
+            continue
+
+        urls.append(data_url)
+        seen.add(data_url)
+
+        if len(urls) >= max_images:
+            break
+
+    logger.info(f"Image payload selection | selected_images={len(urls)}")
+    return urls
+
+
+def _build_llm_messages(
+    prompt: str,
+    image_data_urls: List[str] | None = None,
+    force_image_instructions: bool = False,
+) -> List[Dict]:
+    urls = image_data_urls or []
+    if not urls:
+        return [{"role": "user", "content": prompt}]
+
+    text_payload = prompt
+    if force_image_instructions:
+        text_payload = f"{_build_image_analysis_instructions()}\n\n{prompt}".strip()
+
+    # Keep multimodal payload bounded to reduce provider-side request failures.
+    if len(text_payload) > 9000:
+        text_payload = text_payload[:9000] + "\n\n[Context truncated for multimodal stability.]"
+
+    content = [{"type": "text", "text": text_payload}]
+    for u in urls:
+        content.append({"type": "image_url", "image_url": {"url": u}})
+
+    return [{"role": "user", "content": content}]
+
+
+def _looks_unknown_response(answer: str) -> bool:
+    a = (answer or "").strip().lower()
+    if not a:
+        return True
+    patterns = [
+        "unknown",
+        "cannot determine",
+        "can't determine",
+        "not clear",
+        "unclear from the image",
+    ]
+    return any(p in a for p in patterns)
 
 
 def build_rag_prompt(query: str, context: str, requested_points: int | None = None) -> str:
@@ -215,6 +357,7 @@ async def call_llm_api(
     model: str | None = None,
     max_tokens: int = 600,
     temperature: float = 0.2,
+    messages: List[Dict] | None = None,
 ) -> str:
     """
     Call OpenRouter Chat Completions API.
@@ -238,7 +381,7 @@ async def call_llm_api(
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             payload = {
                 "model": model_name,
-                "messages": [
+                "messages": messages or [
                     {
                         "role": "user",
                         "content": prompt
@@ -257,6 +400,7 @@ async def call_llm_api(
 
             logger.info(f"Calling OpenRouter API with model {model_name}...")
             logger.debug(f"Prompt length: {len(prompt)} chars")
+            logger.info(f"LLM payload mode | multimodal={bool(messages and isinstance(messages[0].get('content'), list))}")
 
             response = await client.post(OPENROUTER_API_URL, headers=headers, json=payload)
 
@@ -306,6 +450,7 @@ async def stream_llm_api(
     model: str | None = None,
     max_tokens: int = 300,
     temperature: float = 0.2,
+    messages: List[Dict] | None = None,
 ) -> AsyncIterator[str]:
     """
     Stream token deltas from OpenRouter Chat Completions API.
@@ -318,7 +463,7 @@ async def stream_llm_api(
 
     payload = {
         "model": model_name,
-        "messages": [
+        "messages": messages or [
             {
                 "role": "user",
                 "content": prompt,
@@ -414,9 +559,22 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
         
         requested_points = _extract_requested_point_count(query)
         model_name = _select_model_for_query(query, retrieved_chunks)
+        image_data_urls = _collect_image_data_urls(retrieved_chunks, max_images=2)
+        image_mode = len(image_data_urls) > 0
+        logger.info(
+            "Generation mode | image_mode=%s | model=%s | chunks=%s",
+            image_mode,
+            model_name,
+            len(retrieved_chunks or []),
+        )
 
         # Build prompt
         prompt = build_rag_prompt(query, context, requested_points=requested_points)
+        messages = _build_llm_messages(
+            prompt,
+            image_data_urls=image_data_urls,
+            force_image_instructions=image_mode,
+        )
 
         # Anti-truncation defaults for long/structured outputs
         max_tokens = 750 if requested_points else 600
@@ -428,7 +586,29 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
             model=model_name,
             max_tokens=max_tokens,
             temperature=temperature,
+            messages=messages,
         )
+
+        if image_mode and _looks_unknown_response(answer):
+            logger.warning("Unknown-like image response detected; regenerating with strict image prompt")
+            strict_prompt = (
+                f"{_build_image_analysis_instructions()}\n\n"
+                f"User question: {query}\n\n"
+                f"Document excerpts:\n{context}\n\n"
+                "Important: For clear objects/charts/diagrams, provide specific observations instead of unknown."
+            )
+            strict_messages = _build_llm_messages(
+                strict_prompt,
+                image_data_urls=image_data_urls,
+                force_image_instructions=False,
+            )
+            answer = await call_llm_api(
+                strict_prompt,
+                model=model_name,
+                max_tokens=max(780, max_tokens),
+                temperature=0.15,
+                messages=strict_messages,
+            )
 
         # Post-generation validation for strict numbered-list requests.
         if requested_points:
@@ -443,6 +623,7 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
                         partial_answer=answer,
                         requested_points=requested_points,
                         model_name=model_name,
+                        image_data_urls=image_data_urls,
                     )
                     valid, reason = _validate_numbered_list(answer, requested_points)
                 except Exception as e:
@@ -475,6 +656,11 @@ Document excerpts:
                     model=model_name,
                     max_tokens=780,
                     temperature=0.2,
+                    messages=_build_llm_messages(
+                        repair_prompt,
+                        image_data_urls=image_data_urls,
+                        force_image_instructions=image_mode,
+                    ),
                 )
                 valid, reason = _validate_numbered_list(answer, requested_points)
                 retries += 1
@@ -521,6 +707,19 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
     requested_points = _extract_requested_point_count(query)
     prompt = build_rag_prompt(query, context, requested_points=requested_points)
     model_name = _select_model_for_query(query, retrieved_chunks)
+    image_data_urls = _collect_image_data_urls(retrieved_chunks, max_images=2)
+    image_mode = len(image_data_urls) > 0
+    messages = _build_llm_messages(
+        prompt,
+        image_data_urls=image_data_urls,
+        force_image_instructions=image_mode,
+    )
+    logger.info(
+        "Streaming mode | image_mode=%s | model=%s | chunks=%s",
+        image_mode,
+        model_name,
+        len(retrieved_chunks or []),
+    )
 
     # For strict list requests, generate validated full answer first, then stream safely.
     if requested_points:
@@ -529,6 +728,7 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
             model=model_name,
             max_tokens=780,
             temperature=0.2,
+            messages=messages,
         )
 
         valid, reason = _validate_numbered_list(answer, requested_points)
@@ -541,6 +741,7 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
                     partial_answer=answer,
                     requested_points=requested_points,
                     model_name=model_name,
+                    image_data_urls=image_data_urls,
                 )
                 valid, reason = _validate_numbered_list(answer, requested_points)
             except Exception as e:
@@ -564,6 +765,11 @@ Document excerpts:
                 model=model_name,
                 max_tokens=780,
                 temperature=0.2,
+                messages=_build_llm_messages(
+                    repair_prompt,
+                    image_data_urls=image_data_urls,
+                    force_image_instructions=image_mode,
+                ),
             )
             valid, reason = _validate_numbered_list(answer, requested_points)
             retries += 1
@@ -577,10 +783,41 @@ Document excerpts:
             yield answer
         return
 
-    async for token in stream_llm_api(
-        prompt,
-        model=model_name,
-        max_tokens=700,
-        temperature=0.2,
-    ):
-        yield token
+    try:
+        async for token in stream_llm_api(
+            prompt,
+            model=model_name,
+            max_tokens=700,
+            temperature=0.2,
+            messages=messages,
+        ):
+            yield token
+    except Exception as stream_error:
+        logger.warning(f"Streaming LLM call failed, falling back to non-stream response: {str(stream_error)}")
+        fallback_answer = await call_llm_api(
+            prompt,
+            model=model_name,
+            max_tokens=700,
+            temperature=0.2,
+            messages=messages,
+        )
+        if _looks_unknown_response(fallback_answer) and image_mode:
+            strict_prompt = (
+                f"{_build_image_analysis_instructions()}\n\n"
+                f"User question: {query}\n\n"
+                f"Document excerpts:\n{context}\n\n"
+                "Important: For clear objects/charts/diagrams, provide specific observations instead of unknown."
+            )
+            strict_messages = _build_llm_messages(
+                strict_prompt,
+                image_data_urls=image_data_urls,
+                force_image_instructions=False,
+            )
+            fallback_answer = await call_llm_api(
+                strict_prompt,
+                model=model_name,
+                max_tokens=780,
+                temperature=0.15,
+                messages=strict_messages,
+            )
+        yield fallback_answer

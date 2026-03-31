@@ -100,7 +100,10 @@ const ChatWindow = ({ initialMessages = [], isLoadingState = false, selectedDocu
 
     try {
       // Call streaming endpoint and update message progressively
-      const finalText = await sendChatMessageStream(userMessage, selectedDocumentIds, (chunk) => {
+      const streamResult = await sendChatMessageStream(userMessage, selectedDocumentIds, (event) => {
+        const chunk = event?.token || '';
+        if (!chunk) return;
+
         streamBufferRef.current += chunk;
         let boundary = getFlushBoundary(streamBufferRef.current);
         if (boundary <= 0) return;
@@ -132,7 +135,9 @@ const ChatWindow = ({ initialMessages = [], isLoadingState = false, selectedDocu
             streamBufferRef.current = '';
             next[i] = {
               ...next[i],
-              content: finalText || `${next[i].content || ''}${remaining}` || 'No answer generated.',
+              content: streamResult?.text || `${next[i].content || ''}${remaining}` || 'No answer generated.',
+              sources: Array.isArray(streamResult?.sources) ? streamResult.sources : [],
+              highlights: Array.isArray(streamResult?.highlights) ? streamResult.highlights : [],
               streaming: false,
             };
             break;

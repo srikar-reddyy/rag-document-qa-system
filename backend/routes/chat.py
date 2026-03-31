@@ -9,11 +9,13 @@ from rag.pipeline import rag_query, classify_query, run_count_pipeline
 from rag.vectordb import get_all_document_metadata
 from rag.vectordb import get_document_chunks
 from rag.retriever import retrieve, extract_sources
-from rag.generator import generate_answer_stream
+from rag.generator import generate_answer_stream, generate_answer
+from rag.pipeline import build_dynamic_sources, extract_highlights_from_sources
 from services import get_chat_service
 import logging
 import re
 import asyncio
+import json
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -238,6 +240,30 @@ async def chat_stream(request: ChatRequest):
         sources = []
         highlights = []
         stream_buffer = ""
+        retrieved_chunks = []
+
+        def _event(token: str = "", done: bool = False, ev_sources=None, ev_highlights=None, error: str = "") -> str:
+            payload = {
+                "token": token,
+                "done": done,
+                "sources": ev_sources if ev_sources is not None else [],
+                "highlights": ev_highlights if ev_highlights is not None else [],
+            }
+            if error:
+                payload["error"] = error
+            return json.dumps(payload, ensure_ascii=False) + "\n"
+
+        def _is_direct_image_selection(doc_ids: list[str]) -> bool:
+            if not doc_ids or len(doc_ids) != 1:
+                return False
+            try:
+                chunks = get_document_chunks(doc_ids, max_chunks_per_document=1)
+                if not chunks:
+                    return False
+                metadata = chunks[0].get("metadata", {}) or {}
+                return (metadata.get("file_type") or "").lower() == "image"
+            except Exception:
+                return False
 
         async def buffered_emit(text: str):
             nonlocal stream_buffer
@@ -252,14 +278,14 @@ async def chat_stream(request: ChatRequest):
                 stream_buffer = stream_buffer[boundary:]
                 if out:
                     answer_parts.append(out)
-                    yield out
+                    yield _event(token=out, done=False)
                     await asyncio.sleep(0.015)
 
         async def flush_remaining():
             nonlocal stream_buffer
             if stream_buffer:
                 answer_parts.append(stream_buffer)
-                yield stream_buffer
+                yield _event(token=stream_buffer, done=False)
                 stream_buffer = ""
 
         try:
@@ -273,6 +299,7 @@ async def chat_stream(request: ChatRequest):
                         yield out
                     async for out in flush_remaining():
                         yield out
+                    yield _event(done=True, ev_sources=[], ev_highlights=[])
                     return
 
                 result = run_count_pipeline(request.message, available_docs)
@@ -282,6 +309,7 @@ async def chat_stream(request: ChatRequest):
                     yield out
                 async for out in flush_remaining():
                     yield out
+                yield _event(done=True, ev_sources=sources, ev_highlights=[])
                 return
 
             # Non-count queries require document selection
@@ -291,10 +319,17 @@ async def chat_stream(request: ChatRequest):
                     yield out
                 async for out in flush_remaining():
                     yield out
+                yield _event(done=True, ev_sources=[], ev_highlights=[])
                 return
 
             # Retrieval (summary gets broad document chunks, others use semantic retrieval)
-            if query_type == "summary":
+            if _is_direct_image_selection(request.selected_documents):
+                logger.info("Streaming direct image QA path activated")
+                retrieved_chunks = get_document_chunks(
+                    request.selected_documents,
+                    max_chunks_per_document=3,
+                )
+            elif query_type == "summary":
                 retrieved_chunks = get_document_chunks(
                     request.selected_documents,
                     max_chunks_per_document=25,
@@ -316,16 +351,50 @@ async def chat_stream(request: ChatRequest):
                     yield out
                 async for out in flush_remaining():
                     yield out
+                yield _event(done=True, ev_sources=[], ev_highlights=[])
                 return
 
             sources = extract_sources(retrieved_chunks)
+            logger.info(f"Stream retrieval stats | chunks={len(retrieved_chunks)} | initial_sources={len(sources)}")
 
-            async for token in generate_answer_stream(request.message, retrieved_chunks):
-                async for out in buffered_emit(token):
-                    yield out
+            try:
+                async for token in generate_answer_stream(request.message, retrieved_chunks):
+                    async for out in buffered_emit(token):
+                        yield out
+            except Exception as stream_model_error:
+                logger.warning(f"Primary streaming model path failed: {str(stream_model_error)}")
+                try:
+                    fallback = await generate_answer(request.message, retrieved_chunks)
+                    fallback_text = (fallback.get("answer") or "").strip()
+                    if not fallback_text:
+                        fallback_text = "I could not stream the model response, but I extracted supporting context."
+                    async for out in buffered_emit(fallback_text):
+                        yield out
+                except Exception as fallback_error:
+                    logger.error(f"Fallback non-stream generation failed: {str(fallback_error)}")
+                    # Final safety: emit concise context-backed response
+                    first_span = ((retrieved_chunks[0].get("text") if retrieved_chunks else "") or "").strip()
+                    safety_text = (
+                        "I couldn't complete generation from the model. "
+                        "Best extracted context:\n\n"
+                        f"{first_span[:700]}"
+                    ).strip()
+                    async for out in buffered_emit(safety_text):
+                        yield out
 
             async for out in flush_remaining():
                 yield out
+
+            final_answer = "".join(answer_parts).strip() or "No answer generated."
+            try:
+                dynamic_sources = await build_dynamic_sources(request.message, final_answer, retrieved_chunks, max_sources=5)
+                sources = dynamic_sources or sources
+                highlights = extract_highlights_from_sources(sources)
+            except Exception as source_error:
+                logger.warning(f"Streaming post-source attribution failed: {str(source_error)}")
+                highlights = []
+
+            yield _event(done=True, ev_sources=sources, ev_highlights=highlights)
 
         except Exception as e:
             logger.error(f"Streaming query failed: {str(e)}")
@@ -334,8 +403,9 @@ async def chat_stream(request: ChatRequest):
                 yield out
             async for out in flush_remaining():
                 yield out
+            yield _event(done=True, ev_sources=sources, ev_highlights=highlights, error=str(e))
         finally:
             final_answer = "".join(answer_parts).strip() or "No answer generated."
             chat_service.add_message("assistant", final_answer, sources, highlights)
 
-    return StreamingResponse(stream_generator(), media_type="text/plain")
+    return StreamingResponse(stream_generator(), media_type="application/x-ndjson")

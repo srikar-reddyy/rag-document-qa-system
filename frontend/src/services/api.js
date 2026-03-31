@@ -103,10 +103,10 @@ export const sendChatMessage = async (message, selectedDocuments = []) => {
  *
  * @param {string} message
  * @param {Array<string>} selectedDocuments
- * @param {(chunk: string) => void} onChunk
- * @returns {Promise<string>} final streamed text
+ * @param {(event: {token?: string, done?: boolean, sources?: Array, highlights?: Array, error?: string}) => void} onEvent
+ * @returns {Promise<{ text: string, sources: Array, highlights: Array }>} final streamed payload
  */
-export const sendChatMessageStream = async (message, selectedDocuments = [], onChunk) => {
+export const sendChatMessageStream = async (message, selectedDocuments = [], onEvent) => {
   try {
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
@@ -137,6 +137,9 @@ export const sendChatMessageStream = async (message, selectedDocuments = [], onC
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let result = '';
+    let buffer = '';
+    let finalSources = [];
+    let finalHighlights = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -145,11 +148,61 @@ export const sendChatMessageStream = async (message, selectedDocuments = [], onC
       const chunk = decoder.decode(value, { stream: true });
       if (!chunk) continue;
 
-      result += chunk;
-      if (onChunk) onChunk(chunk);
+      buffer += chunk;
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        let parsed = null;
+        try {
+          parsed = JSON.parse(line);
+        } catch (_) {
+          // Backward compatibility with plain-text streaming responses
+          result += line;
+          if (onEvent) onEvent({ token: line, done: false, sources: [], highlights: [] });
+          continue;
+        }
+
+        const token = parsed?.token || '';
+        if (token) {
+          result += token;
+        }
+
+        if (Array.isArray(parsed?.sources)) {
+          finalSources = parsed.sources;
+        }
+        if (Array.isArray(parsed?.highlights)) {
+          finalHighlights = parsed.highlights;
+        }
+
+        if (onEvent) onEvent(parsed);
+      }
     }
 
-    return result;
+    // Flush any final trailing line
+    const trailing = buffer.trim();
+    if (trailing) {
+      try {
+        const parsed = JSON.parse(trailing);
+        const token = parsed?.token || '';
+        if (token) result += token;
+        if (Array.isArray(parsed?.sources)) finalSources = parsed.sources;
+        if (Array.isArray(parsed?.highlights)) finalHighlights = parsed.highlights;
+        if (onEvent) onEvent(parsed);
+      } catch (_) {
+        result += trailing;
+        if (onEvent) onEvent({ token: trailing, done: false, sources: [], highlights: [] });
+      }
+    }
+
+    return {
+      text: result,
+      sources: finalSources,
+      highlights: finalHighlights,
+    };
   } catch (error) {
     if (error instanceof Error) {
       throw error;
