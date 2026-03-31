@@ -2,98 +2,67 @@
   "messages": [
     {
       "role": "user",
-      "content": "about authors",
-      "timestamp": "2026-03-30T19:59:37.833375"
+      "content": "hi",
+      "timestamp": "2026-03-31T05:55:48.615361"
     },
     {
       "role": "assistant",
-      "content": "The document does not provide specific information about the authors of the paper. However, it references several works in the literature review section:\n\n1. [7] A. K. Sinha And M. Kumar, \"Conversational Question Answering Systems: A Comprehensive Literature Review,\" presented at the 2023 IEEE International Conference on Computational Intelligence and Communication Technology (CIC-T) in New Delhi, India.\n2. [8] Y. Liu, X. Wu, And H. Zhang, \"Improving Retrieval-Based Question Answering With Deep Inference Models,\" published in IEEE Transactions on Knowledge and Data Engineering, Volume 36, Issue 5, pp. 1123-1134, May 2024.\n3. [9] S. Garg And K. Pradhan, \"Science Exam Question Answering Based On Retrieval-Augmented Generation,\" presented at the IEEE International Conference on Artificial Intelligence and Applications in 2024.\n4. [10] A. Chowdhury, R. Banerjee, And S. Gupta, \"Leveraging Neural Networks In Retrieval -Augmented Qa,\" published in IEEE Transactions on Knowledge and Data Engineering, Volume 35, Issue 5, pp. 123\u2013135, 2023.\n\nFor more detailed information about these authors, you would need to refer to the respective publications or additional sources.",
-      "timestamp": "2026-03-30T19:59:53.856268",
+      "content": "No relevant information found in uploaded documents.",
+      "timestamp": "2026-03-31T05:55:48.717137"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2026-03-31T05:55:54.906443"
+    },
+    {
+      "role": "assistant",
+      "content": "No relevant information found in uploaded documents.",
+      "timestamp": "2026-03-31T05:55:54.989602"
+    },
+    {
+      "role": "user",
+      "content": "hi",
+      "timestamp": "2026-03-31T05:56:32.041070"
+    },
+    {
+      "role": "assistant",
+      "content": "1. Image Type: Real-world image",
+      "timestamp": "2026-03-31T05:58:20.654157",
       "sources": [
         {
-          "file": "B2702010610.pdf",
-          "page": 2
-        },
-        {
-          "file": "B2702010610.pdf",
+          "file": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
           "page": 1
-        },
-        {
-          "file": "B2702010610.pdf",
-          "page": 5
         }
       ]
     },
     {
       "role": "user",
-      "content": "about abstract",
-      "timestamp": "2026-03-30T20:00:05.186560"
+      "content": "hi",
+      "timestamp": "2026-03-31T05:58:34.141814"
     },
     {
       "role": "assistant",
-      "content": "The document discusses Multiple Document Based Question Answering using Retrieval-Augmented Generation (RAG). The abstract mentions the system's capability to efficiently retrieve information from a large set of documents, making it useful for various fields such as education and research. This aligns with the broader advancements in question answering systems transitioning from rule-based approaches to more sophisticated AI models like transformers, which enhance context understanding and provide accurate answers.\n\nSource Attribution: [Document: B2702010610.pdf]",
-      "timestamp": "2026-03-30T20:00:16.552539",
+      "content": "1. Image Type: Real-world image\n2. Key Elements:\n   - A person wearing a white shirt\n   - Background with blurred greenery and trees\n3. Structure / Flow:\n   - The person is the main focus\n   - The background provides context\n4. Core Concept:\n   - The image depicts a person in an outdoor setting\n5. Interpretation:\n   - The person is likely posing for a photo\n   - The white shirt suggests a casual or semi-formal occasion\n   - The blurred background indicates a shallow depth of field, emphasizing the person in the foreground",
+      "timestamp": "2026-03-31T05:59:15.293856",
       "sources": [
         {
-          "file": "B2702010610.pdf",
-          "page": 1
-        },
-        {
-          "file": "B2702010610.pdf",
-          "page": 5
-        },
-        {
-          "file": "B2702010610.pdf",
-          "page": 2
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "about design and methodology",
-      "timestamp": "2026-03-30T20:00:48.365518"
-    },
-    {
-      "role": "assistant",
-      "content": "The design and methodology of the Multi-Document Q&A System described in the document involve several key components:\n\n1. **Model Preprocessing**: The documents are preprocessed by extracting their text and converting it into vector embeddings for semantic representation using HuggingFace models.\n   \n2. **Vector Store Setup**: Document embeddings are added to a Chroma vector store to enable efficient retrieval during query processing.\n\n3. **Retrieval-Augmented Generation (RAG)**: This component uses the Llama 3.1 model to generate responses to questions by retrieving and utilizing relevant segments of documents based on the user's query.\n\n4. **Conversational Memory**: A memory buffer is created to preserve context across multiple queries, enhancing the chatbot's ability to maintain conversation flow.\n\n5. **User Interface**: A simple Streamlit user interface is implemented to allow users to input questions and view the generated answers.\n\n6. **Evaluation**: The accuracy and contextual relevance of the answers are evaluated to ensure the system provides reliable and relevant information.\n\nThese elements work together to construct a robust architecture for handling multi-document based Q&A tasks. The evaluation process focuses on ensuring the chatbot can provide accurate and detailed explanations in a timely manner.\n\n[Document: B2702010610.pdf, Page: 2, Section: Unknown]",
-      "timestamp": "2026-03-30T20:01:06.917597",
-      "sources": [
-        {
-          "doc": "B2702010610.pdf",
-          "file": "B2702010610.pdf",
-          "page": 2,
-          "text": "The Multi-Document Q&A System consist of several components.",
-          "score": 0.4088631306464303,
-          "query_similarity": 0.318667095836877,
-          "answer_similarity": 0.6477885683671839,
-          "bbox": null
-        },
-        {
-          "doc": "B2702010610.pdf",
-          "file": "B2702010610.pdf",
+          "doc": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
+          "file": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
           "page": 1,
-          "text": "This text does not contain relevant information about design and methodology for a Multi-Document Q&A System. It appears to be a journal article citation and author list.",
-          "score": 0.4040816477849636,
-          "query_similarity": 0.47470390574143645,
-          "answer_similarity": 0.37816057644238027,
+          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: The image appears to show bananas on a surface.",
+          "score": 1.0,
+          "query_similarity": 0.0,
+          "answer_similarity": 0.0,
           "bbox": null
         }
       ],
       "highlights": [
         {
-          "doc_name": "B2702010610.pdf",
-          "page": 2,
-          "text": "The Multi-Document Q&A System consist of several components.",
-          "score": 0.4088631306464303,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "B2702010610.pdf",
+          "doc_name": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
           "page": 1,
-          "text": "This text does not contain relevant information about design and methodology for a Multi-Document Q&A System. It appears to be a journal article citation and author list.",
-          "score": 0.4040816477849636,
+          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: The image appears to show bananas on a surface.",
+          "score": 1.0,
           "char_start": null,
           "char_end": null,
           "bbox": null
@@ -102,207 +71,13 @@
     },
     {
       "role": "user",
-      "content": "who won map an app hackathob",
-      "timestamp": "2026-03-30T20:01:57.734180"
+      "content": "what does this image describe",
+      "timestamp": "2026-03-31T05:59:56.373563"
     },
     {
       "role": "assistant",
-      "content": "Puli Bhavishwa Reddy won the \"Map an App\" Hackathon. This achievement is documented in the provided resume excerpt from the file \"resume_job.pdf\".",
-      "timestamp": "2026-03-30T20:02:04.501724",
-      "sources": [
-        {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
-          "page": 1,
-          "text": "Puli Bhavishwa Reddy won the \"Map an App\" Hackathon.",
-          "score": 0.6892493483742618,
-          "query_similarity": 0.7024852034854949,
-          "answer_similarity": 0.7429295531431334,
-          "bbox": null
-        },
-        {
-          "doc": "resume_job.pdf",
-          "file": "resume_job.pdf",
-          "page": 1,
-          "text": "Winner of\u201dMap an App\u201d Hackathon- Developed an innovativeOne-Tap Blood Donation App.",
-          "score": 0.48059683376951196,
-          "query_similarity": 0.537286080659538,
-          "answer_similarity": 0.48801078606014797,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "resume_job.pdf",
-          "page": 1,
-          "text": "Puli Bhavishwa Reddy won the \"Map an App\" Hackathon.",
-          "score": 0.6892493483742618,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "resume_job.pdf",
-          "page": 1,
-          "text": "Winner of\u201dMap an App\u201d Hackathon- Developed an innovativeOne-Tap Blood Donation App.",
-          "score": 0.48059683376951196,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "what does image in page 54 represents",
-      "timestamp": "2026-03-30T20:03:01.187330"
-    },
-    {
-      "role": "assistant",
-      "content": "The excerpt from page 54 describes a diagram that has an upper part representing an Income Statement (also known as a Profit- and-Loss Statement) and a lower part representing a Balance Sheet. The text explains that the Income Statement measures income and expenses, while the Balance Sheet balances assets against liabilities. However, no specific image is provided in the given excerpts. The description is based on the text from \"Rich Dad Poor Dad\" by Robert T. Kiyosaki.\n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
-      "timestamp": "2026-03-30T20:03:10.836974",
-      "sources": [
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 54,
-          "text": "The lower part of the diagram is a Balance Sheet. It\u2019s called that because it\u2019s supposed to balance assets against liabilities.",
-          "score": 0.47941575024924493,
-          "query_similarity": 0.3663775984193743,
-          "answer_similarity": 0.738723521168319,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 45,
-          "text": "The text provided does not contain any information related to an image on page 54 or descriptions of financial statements. Therefore, there are no relevant sentences to return based on the given query.",
-          "score": 0.44989639224131855,
-          "query_similarity": 0.4833927552083017,
-          "answer_similarity": 0.48333003431967925,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "The arrows in the diagrams represent the flow of cash, or \u201ccash flow.\u201d",
-          "score": 0.3618370266555427,
-          "query_similarity": 0.31092842512891855,
-          "answer_similarity": 0.5360016753800702,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 54,
-          "text": "The lower part of the diagram is a Balance Sheet. It\u2019s called that because it\u2019s supposed to balance assets against liabilities.",
-          "score": 0.47941575024924493,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 45,
-          "text": "The text provided does not contain any information related to an image on page 54 or descriptions of financial statements. Therefore, there are no relevant sentences to return based on the given query.",
-          "score": 0.44989639224131855,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "The arrows in the diagrams represent the flow of cash, or \u201ccash flow.\u201d",
-          "score": 0.3618370266555427,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "what does image in page 56 represent",
-      "timestamp": "2026-03-30T20:03:21.390176"
-    },
-    {
-      "role": "assistant",
-      "content": "Based on the provided document excerpts, there is no direct mention of an image on page 56. The closest relevant content is from page 55, where the author discusses defining assets and liabilities through pictures and emphasizes the importance of understanding the cash flow represented by arrows in the diagrams. However, without the actual content or image from page 56, it's uncertain what specific representation is being referred to. Therefore, I cannot provide a definitive answer about the image on page 56. [Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf]",
-      "timestamp": "2026-03-30T20:03:34.627016",
-      "sources": [
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 45,
-          "text": "None of the provided text relates to page 56 or any images on that page.",
-          "score": 0.592223523434827,
-          "query_similarity": 0.7295830016837282,
-          "answer_similarity": 0.5146916048513303,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "The arrows in the diagrams represent the flow of cash, or \"cash flow.\"",
-          "score": 0.3934301638245764,
-          "query_similarity": 0.31159390808305865,
-          "answer_similarity": 0.601312318515267,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 153,
-          "text": "And the previous diagram is the correct accounting picture of that action.",
-          "score": 0.38269531521589356,
-          "query_similarity": 0.3594556170145946,
-          "answer_similarity": 0.5133182643558091,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 45,
-          "text": "None of the provided text relates to page 56 or any images on that page.",
-          "score": 0.592223523434827,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "The arrows in the diagrams represent the flow of cash, or \"cash flow.\"",
-          "score": 0.3934301638245764,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 153,
-          "text": "And the previous diagram is the correct accounting picture of that action.",
-          "score": 0.38269531521589356,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "what does this image represent",
-      "timestamp": "2026-03-30T20:04:03.756604"
-    },
-    {
-      "role": "assistant",
-      "content": "LLM service unavailable. Best extracted context:\n\nImage Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text. Detected Elements: This image likely contains objects or a scene without readable text. OCR Text: \\. o < . 6 . \u2018\u2014)",
-      "timestamp": "2026-03-30T20:04:06.074923",
+      "content": "1. Image Type: Real-world image\n2. Key Elements:\n   - A white plate with a chocolate bar and some chocolate pieces.\n   - The chocolate bar is divided into smaller squares.\n   - The chocolate pieces are scattered around the plate.\n   - The plate is placed on a surface with a textured background.\n3. Structure / Flow:\n   - The image shows a close-up view of a chocolate bar and some chocolate pieces on a plate.\n   - The chocolate bar is the central object, with smaller squares visible.\n   - The chocolate pieces are scattered around the plate, some on the plate and some off the plate.\n   - The plate is placed on a textured surface, possibly a table or countertop.\n4. Core Concept:\n   - The image represents a chocolate bar and some chocolate pieces.\n   - The chocolate bar is divided into smaller squares, indicating it is a chocolate bar.\n   - The chocolate pieces are scattered around the plate, suggesting they are pieces of the chocolate bar.\n5. Interpretation:\n   - The image likely represents a chocolate bar that has been broken into smaller pieces.\n   - The chocolate bar is the main focus, with the smaller squares and pieces scattered around it.\n   - The plate and textured background provide context for the setting, suggesting it is a casual or home setting.",
+      "timestamp": "2026-03-31T06:01:07.962084",
       "sources": [
         {
           "doc": "download (4).jpeg",
@@ -310,8 +85,8 @@
           "page": 1,
           "text": "This image likely contains objects or a scene without readable text.",
           "score": 1.0,
-          "query_similarity": 0.5872153043813333,
-          "answer_similarity": 0.561742899629156,
+          "query_similarity": 0.5175293661886287,
+          "answer_similarity": 0.34643987487620825,
           "bbox": null
         },
         {
@@ -339,6 +114,167 @@
           "doc_name": "download (4).jpeg",
           "page": 1,
           "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what does image in page 57 describe",
+      "timestamp": "2026-03-31T06:02:26.369615"
+    },
+    {
+      "role": "assistant",
+      "content": "Based on the provided document excerpts, there is no specific description of an image on page 57. The excerpts only contain information from pages 4, 45, and 54-55 of \"Rich Dad Poor Dad\" by Robert T. Kiyosaki. Therefore, I cannot provide details about what an image on page 57 might describe.",
+      "timestamp": "2026-03-31T06:02:45.543960",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 55,
+          "text": "Now that assets and liabilities have been defined through pictures, it may be easier to understand my definitions in words.",
+          "score": 0.29791504278692904,
+          "query_similarity": 0.35482025417462904,
+          "answer_similarity": 0.28892731065310867,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 4,
+          "text": "If you purchase this book without a cover, or purchase a PDF, jpg, or tiff copy of this book, it is likely stolen property or a counterfeit.",
+          "score": 0.2917289298057457,
+          "query_similarity": 0.3197758011797633,
+          "answer_similarity": 0.32148258806726443,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 55,
+          "text": "Now that assets and liabilities have been defined through pictures, it may be easier to understand my definitions in words.",
+          "score": 0.29791504278692904,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 4,
+          "text": "If you purchase this book without a cover, or purchase a PDF, jpg, or tiff copy of this book, it is likely stolen property or a counterfeit.",
+          "score": 0.2917289298057457,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "summarize page 57",
+      "timestamp": "2026-03-31T06:03:03.117493"
+    },
+    {
+      "role": "assistant",
+      "content": "Page 57 of \"Rich Dad Poor Dad\" by Robert T. Kiyosaki does not have direct content quoted from the provided document excerpts. However, based on the surrounding context, it appears to discuss the importance of financial education and the pitfalls of secure but unsophisticated investments. The document mentions that \"secure\" investments are often sanitized, meaning they are made so safe that the gains are less, and that such investments may not solve financial problems but can compound them. It also notes that people who are not versed in financial subjects tend to follow standard advice, such as diversifying and investing in secure options, which may not lead to financial success. This page emphasizes that financial wisdom and boldness are necessary to achieve wealth, rather than simply playing it safe.\n\n[Source: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf, Page 58]",
+      "timestamp": "2026-03-31T06:04:23.645270",
+      "sources": [
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167,
+          "text": "This text does not appear to be directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" The provided text discusses strategies for making offers and finding deals in real estate, which is not aligned with the content about financial education and secure investments mentioned in the query. Therefore, no sentences from this text are relevant to summarizing page 57.",
+          "score": 1.0,
+          "query_similarity": 0.38672870159807254,
+          "answer_similarity": 0.6647287729976894,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159,
+          "text": "This text does not appear to be directly relevant to summarizing page 57 of \"Rich Dad Poor Dad.\" However, based on the context provided, a relevant sentence could be:",
+          "score": 1.0,
+          "query_similarity": 0.4245381946449517,
+          "answer_similarity": 0.6210566902876231,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194,
+          "text": "The text provided does not contain any sentences directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" Therefore, no sentences are extracted as relevant to the query.",
+          "score": 1.0,
+          "query_similarity": 0.47017077805654806,
+          "answer_similarity": 0.39744308238709725,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145,
+          "text": "Not relevant to summarizing page 57.",
+          "score": 1.0,
+          "query_similarity": 0.7387290825741236,
+          "answer_similarity": 0.19077892551907052,
+          "bbox": null
+        },
+        {
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47,
+          "text": "Not relevant to the query about summarizing page 57.",
+          "score": 1.0,
+          "query_similarity": 0.7578290495913877,
+          "answer_similarity": 0.10484568391134773,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 167,
+          "text": "This text does not appear to be directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" The provided text discusses strategies for making offers and finding deals in real estate, which is not aligned with the content about financial education and secure investments mentioned in the query. Therefore, no sentences from this text are relevant to summarizing page 57.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 159,
+          "text": "This text does not appear to be directly relevant to summarizing page 57 of \"Rich Dad Poor Dad.\" However, based on the context provided, a relevant sentence could be:",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 194,
+          "text": "The text provided does not contain any sentences directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" Therefore, no sentences are extracted as relevant to the query.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 145,
+          "text": "Not relevant to summarizing page 57.",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        },
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 47,
+          "text": "Not relevant to the query about summarizing page 57.",
           "score": 1.0,
           "char_start": null,
           "char_end": null,

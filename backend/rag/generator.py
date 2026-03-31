@@ -12,10 +12,12 @@ from typing import AsyncIterator
 import re
 import base64
 import mimetypes
+import importlib
 
-try:
-    from pdf2image import convert_from_path
-except ImportError:
+_pdf2image = importlib.util.find_spec("pdf2image")
+if _pdf2image is not None:
+    convert_from_path = importlib.import_module("pdf2image").convert_from_path
+else:
     convert_from_path = None
 
 logger = logging.getLogger(__name__)
@@ -165,29 +167,118 @@ Already generated points:
 
 
 def _select_model_for_query(query: str, retrieved_chunks: List[Dict]) -> str:
-    has_image_chunks = any(
-        (chunk.get("metadata", {}) or {}).get("file_type") == "image"
-        for chunk in (retrieved_chunks or [])
+    return "qwen/qwen-2.5-7b-instruct"
+
+
+def has_image_context(chunks: List[Dict]) -> bool:
+    return any(
+        (c.get("metadata", {}) or {}).get("file_type") == "image"
+        for c in (chunks or [])
     )
-    return "qwen/qwen-2.5-vl-7b-instruct" if has_image_chunks else "qwen/qwen-2.5-7b-instruct"
+
+
+def _get_primary_image_path(chunks: List[Dict]) -> str | None:
+    for chunk in (chunks or []):
+        metadata = chunk.get("metadata", {}) or {}
+        if (metadata.get("file_type") or "").lower() != "image":
+            continue
+        image_path = metadata.get("source_image_path") or metadata.get("file_path")
+        if image_path:
+            return image_path
+    return None
+
+
+def call_local_vision(image_path: str, query: str) -> str:
+    import base64
+    import requests
+    import os
+
+    if not image_path or not os.path.exists(image_path):
+        raise Exception("Invalid image path")
+
+    with open(image_path, "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode()
+
+    vision_prompt = f"""
+Analyze the provided image carefully.
+
+Question:
+{query}
+
+Instructions:
+- Identify all visible elements
+- If chart → extract trends and values
+- If diagram → explain relationships clearly
+- If real-world image → describe objects precisely
+- Do NOT say "unknown" unless truly unclear
+
+Return structured output:
+1. Image Type
+2. Key Elements
+3. Structure / Flow
+4. Core Concept
+5. Interpretation
+"""
+
+    try:
+        resp = requests.post(
+            "http://192.168.0.103:11434/api/generate",
+            json={
+                "model": "qwen2.5vl:3b",
+                "prompt": vision_prompt,
+                "images": [img_b64],
+                "stream": False,
+            },
+            timeout=60,
+        )
+
+        if resp.status_code != 200:
+            raise Exception(f"Ollama error: {resp.text[:400]}")
+
+        try:
+            data = resp.json()
+        except Exception as json_error:
+            raise Exception(f"Invalid JSON from Ollama: {str(json_error)}")
+
+        if "response" not in data:
+            raise Exception("Invalid Ollama response format")
+
+        result = (data.get("response") or "").strip()
+        if not result:
+            raise Exception("Empty response from Ollama")
+
+        return result
+
+    except Exception as e:
+        raise Exception(f"Ollama request failed: {str(e)}")
 
 
 def _build_image_analysis_instructions() -> str:
     return (
-        "Analyze the image carefully.\n\n"
+        "You are a vision-language reasoning engine analyzing images in a RAG system.\n\n"
+        "GOAL:\n"
+        "- Generate accurate, detailed, and structured answers from images.\n\n"
         "Instructions:\n"
+        "- Use ONLY what is visible in the image\n"
+        "- Mention actual labels and objects\n"
+        "- Explain relationships clearly\n"
+        "- Avoid generic phrases and filler text\n"
         "- Identify all visible objects and elements\n"
         "- If chart -> extract values and compare\n"
         "- If diagram -> explain flow and relationships\n"
         "- If real image -> describe objects clearly\n"
         "- DO NOT rely only on text\n"
         "- DO NOT say 'unknown' unless truly unclear\n\n"
-        "Return structured output:\n"
+        "Return EXACTLY this format:\n"
         "1. Image Type\n"
-        "2. Key Elements\n"
-        "3. Relationships / Structure\n"
-        "4. Core Meaning\n"
-        "5. Interpretation"
+        "2. Key Elements (bullet list; include at least 5 specific visible elements)\n"
+        "3. Structure / Flow (movement, links, causal or spatial relations)\n"
+        "4. Core Concept\n"
+        "5. Interpretation\n\n"
+        "QUALITY CHECK (must pass before final answer):\n"
+        "- Include at least 5 specific elements\n"
+        "- No vague statements\n"
+        "- No generic filler text"
     )
 
 
@@ -300,6 +391,71 @@ def _looks_unknown_response(answer: str) -> bool:
         "unclear from the image",
     ]
     return any(p in a for p in patterns)
+
+
+def _count_key_elements(answer: str) -> int:
+    if not answer:
+        return 0
+
+    # Prefer counting explicit bullets in section 2
+    section_match = re.search(
+        r"(?is)2\.\s*key\s*elements.*?(?=\n\s*3\.|\Z)",
+        answer,
+    )
+    section = section_match.group(0) if section_match else answer
+
+    bullet_count = len(re.findall(r"(?m)^\s*(?:[-*•]|\d+\))\s+\S+", section))
+    if bullet_count > 0:
+        return bullet_count
+
+    # Fallback: count comma-separated specific items after colon
+    comma_items = re.findall(r"(?i)key\s*elements\s*[:\-]\s*(.+)", section)
+    if comma_items:
+        last_line = comma_items[-1]
+        parts = [p.strip() for p in last_line.split(",") if p.strip()]
+        return len(parts)
+
+    return 0
+
+
+def _passes_image_quality_check(answer: str) -> tuple[bool, str]:
+    if not answer or not answer.strip():
+        return False, "empty_answer"
+
+    required_sections = [
+        r"(?i)\b1\.\s*image\s*type\b",
+        r"(?i)\b2\.\s*key\s*elements\b",
+        r"(?i)\b3\.\s*structure\s*/\s*flow\b",
+        r"(?i)\b4\.\s*core\s*concept\b",
+        r"(?i)\b5\.\s*interpretation\b",
+    ]
+    for pattern in required_sections:
+        if not re.search(pattern, answer):
+            return False, "missing_required_structure"
+
+    if _count_key_elements(answer) < 5:
+        return False, "insufficient_specific_elements"
+
+    vague_patterns = [
+        r"(?i)\bthis image shows something\b",
+        r"(?i)\bit appears to be\b",
+        r"(?i)\bgeneric\b",
+        r"(?i)\bvarious things\b",
+    ]
+    if any(re.search(p, answer) for p in vague_patterns):
+        return False, "vague_or_generic_phrasing"
+
+    return True, "ok"
+
+
+def _build_image_repair_prompt(query: str, context: str, reason: str) -> str:
+    return (
+        f"{_build_image_analysis_instructions()}\n\n"
+        f"Previous output failed quality check: {reason}.\n"
+        "Regenerate the answer and strictly satisfy all structure and quality constraints.\n\n"
+        f"User question: {query}\n\n"
+        f"Document excerpts:\n{context}\n"
+    )
 
 
 def build_rag_prompt(query: str, context: str, requested_points: int | None = None) -> str:
@@ -559,21 +715,21 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
         
         requested_points = _extract_requested_point_count(query)
         model_name = _select_model_for_query(query, retrieved_chunks)
-        image_data_urls = _collect_image_data_urls(retrieved_chunks, max_images=2)
-        image_mode = len(image_data_urls) > 0
+        image_mode = has_image_context(retrieved_chunks)
         logger.info(
             "Generation mode | image_mode=%s | model=%s | chunks=%s",
             image_mode,
             model_name,
             len(retrieved_chunks or []),
         )
+        logger.info("Using LOCAL Ollama for vision" if image_mode else "Using OpenRouter for text")
 
         # Build prompt
         prompt = build_rag_prompt(query, context, requested_points=requested_points)
         messages = _build_llm_messages(
             prompt,
-            image_data_urls=image_data_urls,
-            force_image_instructions=image_mode,
+            image_data_urls=[],
+            force_image_instructions=False,
         )
 
         # Anti-truncation defaults for long/structured outputs
@@ -581,34 +737,86 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
         temperature = 0.2
 
         # Call LLM
-        answer = await call_llm_api(
-            prompt,
-            model=model_name,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            messages=messages,
-        )
+        if image_mode:
+            image_path = _get_primary_image_path(retrieved_chunks)
+            logger.info(f"Image path: {image_path}")
+            try:
+                if not image_path:
+                    logger.error("No image path found in metadata")
+                    raise Exception("Image path missing")
 
-        if image_mode and _looks_unknown_response(answer):
-            logger.warning("Unknown-like image response detected; regenerating with strict image prompt")
-            strict_prompt = (
-                f"{_build_image_analysis_instructions()}\n\n"
-                f"User question: {query}\n\n"
-                f"Document excerpts:\n{context}\n\n"
-                "Important: For clear objects/charts/diagrams, provide specific observations instead of unknown."
-            )
-            strict_messages = _build_llm_messages(
-                strict_prompt,
-                image_data_urls=image_data_urls,
-                force_image_instructions=False,
-            )
+                enhanced_query = f"""
+Context:
+{context}
+
+Question:
+{query}
+""".strip()
+
+                logger.info("Calling Ollama vision model...")
+                answer = call_local_vision(image_path, enhanced_query)
+                if not answer or not answer.strip():
+                    raise Exception("Empty response from Ollama")
+                logger.info(f"Ollama response length: {len(answer)}")
+
+            except Exception as vision_error:
+                logger.error(f"Ollama vision failed: {str(vision_error)}")
+                answer = await call_llm_api(
+                    prompt,
+                    model="qwen/qwen-2.5-7b-instruct",
+                    max_tokens=700,
+                    temperature=0.2,
+                    messages=messages,
+                )
+                if not answer or not answer.strip():
+                    answer = "Failed to process image. Please try again."
+        else:
             answer = await call_llm_api(
-                strict_prompt,
-                model=model_name,
-                max_tokens=max(780, max_tokens),
-                temperature=0.15,
-                messages=strict_messages,
+                prompt,
+                model="qwen/qwen-2.5-7b-instruct",
+                max_tokens=max_tokens,
+                temperature=temperature,
+                messages=messages,
             )
+
+        if image_mode:
+            valid_img, img_reason = _passes_image_quality_check(answer)
+            img_retries = 0
+            while (not valid_img) and img_retries < 2:
+                logger.warning(f"Image quality check failed ({img_reason}); regenerating (attempt {img_retries + 2}/3)")
+                repair_prompt = _build_image_repair_prompt(query, context, img_reason)
+                repair_messages = _build_llm_messages(
+                    repair_prompt,
+                    image_data_urls=[],
+                    force_image_instructions=False,
+                )
+                if image_mode:
+                    image_path = _get_primary_image_path(retrieved_chunks)
+                    try:
+                        answer = call_local_vision(image_path, f"{query}\n\nQuality fix requirement: {img_reason}")
+                    except Exception as vision_retry_error:
+                        logger.warning(f"Local vision retry failed, using OpenRouter text fallback: {str(vision_retry_error)}")
+                        answer = await call_llm_api(
+                            repair_prompt,
+                            model="qwen/qwen-2.5-7b-instruct",
+                            max_tokens=max(820, max_tokens),
+                            temperature=0.15,
+                            messages=repair_messages,
+                        )
+                else:
+                    answer = await call_llm_api(
+                        repair_prompt,
+                        model="qwen/qwen-2.5-7b-instruct",
+                        max_tokens=max(820, max_tokens),
+                        temperature=0.15,
+                        messages=repair_messages,
+                    )
+                if _looks_unknown_response(answer):
+                    img_reason = "unknown_like_response"
+                    img_retries += 1
+                    continue
+                valid_img, img_reason = _passes_image_quality_check(answer)
+                img_retries += 1
 
         # Post-generation validation for strict numbered-list requests.
         if requested_points:
@@ -623,7 +831,7 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
                         partial_answer=answer,
                         requested_points=requested_points,
                         model_name=model_name,
-                        image_data_urls=image_data_urls,
+                        image_data_urls=[],
                     )
                     valid, reason = _validate_numbered_list(answer, requested_points)
                 except Exception as e:
@@ -658,8 +866,8 @@ Document excerpts:
                     temperature=0.2,
                     messages=_build_llm_messages(
                         repair_prompt,
-                        image_data_urls=image_data_urls,
-                        force_image_instructions=image_mode,
+                        image_data_urls=[],
+                        force_image_instructions=False,
                     ),
                 )
                 valid, reason = _validate_numbered_list(answer, requested_points)
@@ -674,25 +882,13 @@ Document excerpts:
         }
     
     except Exception as e:
-        logger.error(f"Error generating answer: {str(e)}")
+        logger.error(f"Critical error: {str(e)}")
 
         # Safe fallback when LLM is unavailable
         from .retriever import extract_sources
 
-        fallback_text = "LLM service unavailable. Please try again in a moment."
-        if retrieved_chunks:
-            joined = "\n".join(
-                (chunk.get("text", "") or "").strip()
-                for chunk in retrieved_chunks[:1]
-            ).strip()
-            if joined:
-                fallback_text = (
-                    "LLM service unavailable. Best extracted context:\n\n"
-                    f"{joined[:700]}"
-                )
-
         return {
-            "answer": fallback_text,
+            "answer": "Failed to process image. Please try again.",
             "sources": extract_sources(retrieved_chunks)
         }
 
@@ -707,12 +903,11 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
     requested_points = _extract_requested_point_count(query)
     prompt = build_rag_prompt(query, context, requested_points=requested_points)
     model_name = _select_model_for_query(query, retrieved_chunks)
-    image_data_urls = _collect_image_data_urls(retrieved_chunks, max_images=2)
-    image_mode = len(image_data_urls) > 0
+    image_mode = has_image_context(retrieved_chunks)
     messages = _build_llm_messages(
         prompt,
-        image_data_urls=image_data_urls,
-        force_image_instructions=image_mode,
+        image_data_urls=[],
+        force_image_instructions=False,
     )
     logger.info(
         "Streaming mode | image_mode=%s | model=%s | chunks=%s",
@@ -720,6 +915,7 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
         model_name,
         len(retrieved_chunks or []),
     )
+    logger.info("Using LOCAL Ollama for vision" if image_mode else "Using OpenRouter for text")
 
     # For strict list requests, generate validated full answer first, then stream safely.
     if requested_points:
@@ -741,7 +937,7 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
                     partial_answer=answer,
                     requested_points=requested_points,
                     model_name=model_name,
-                    image_data_urls=image_data_urls,
+                    image_data_urls=[],
                 )
                 valid, reason = _validate_numbered_list(answer, requested_points)
             except Exception as e:
@@ -767,14 +963,89 @@ Document excerpts:
                 temperature=0.2,
                 messages=_build_llm_messages(
                     repair_prompt,
-                    image_data_urls=image_data_urls,
-                    force_image_instructions=image_mode,
+                    image_data_urls=[],
+                    force_image_instructions=False,
                 ),
             )
             valid, reason = _validate_numbered_list(answer, requested_points)
             retries += 1
 
         # Emit by line blocks to preserve numbered item structure.
+        lines = answer.splitlines(keepends=True)
+        for line in lines:
+            if line:
+                yield line
+        if not lines:
+            yield answer
+        return
+
+    if image_mode and not requested_points:
+        # For image responses, use local Ollama vision inference.
+        image_path = _get_primary_image_path(retrieved_chunks)
+        logger.info(f"Image path: {image_path}")
+        try:
+            if not image_path:
+                logger.error("No image path found in metadata")
+                raise Exception("Image path missing")
+
+            enhanced_query = f"""
+Context:
+{context}
+
+Question:
+{query}
+""".strip()
+            logger.info("Calling Ollama vision model...")
+            answer = call_local_vision(image_path, enhanced_query)
+            if not answer:
+                raise Exception("Empty response from local vision")
+            logger.info(f"Ollama response length: {len(answer)}")
+        except Exception as vision_error:
+            logger.error(f"Ollama vision failed: {str(vision_error)}")
+            answer = await call_llm_api(
+                prompt,
+                model="qwen/qwen-2.5-7b-instruct",
+                max_tokens=760,
+                temperature=0.2,
+                messages=messages,
+            )
+            if not answer or not answer.strip():
+                answer = "Failed to process image. Please try again."
+
+        valid_img, img_reason = _passes_image_quality_check(answer)
+        img_retries = 0
+        while (not valid_img) and img_retries < 2:
+            logger.warning(f"Streaming image quality check failed ({img_reason}); regenerating")
+            repair_prompt = _build_image_repair_prompt(query, context, img_reason)
+            repair_messages = _build_llm_messages(
+                repair_prompt,
+                image_data_urls=[],
+                force_image_instructions=False,
+            )
+            if image_mode:
+                image_path = _get_primary_image_path(retrieved_chunks)
+                try:
+                    answer = call_local_vision(image_path, f"{query}\n\nQuality fix requirement: {img_reason}")
+                except Exception as vision_retry_error:
+                    logger.warning(f"Local vision retry failed in stream path: {str(vision_retry_error)}")
+                    answer = await call_llm_api(
+                        repair_prompt,
+                        model="qwen/qwen-2.5-7b-instruct",
+                        max_tokens=820,
+                        temperature=0.15,
+                        messages=repair_messages,
+                    )
+            else:
+                answer = await call_llm_api(
+                    repair_prompt,
+                    model="qwen/qwen-2.5-7b-instruct",
+                    max_tokens=820,
+                    temperature=0.15,
+                    messages=repair_messages,
+                )
+            valid_img, img_reason = _passes_image_quality_check(answer)
+            img_retries += 1
+
         lines = answer.splitlines(keepends=True)
         for line in lines:
             if line:
@@ -810,12 +1081,12 @@ Document excerpts:
             )
             strict_messages = _build_llm_messages(
                 strict_prompt,
-                image_data_urls=image_data_urls,
+                image_data_urls=[],
                 force_image_instructions=False,
             )
             fallback_answer = await call_llm_api(
                 strict_prompt,
-                model=model_name,
+                model="qwen/qwen-2.5-7b-instruct",
                 max_tokens=780,
                 temperature=0.15,
                 messages=strict_messages,
