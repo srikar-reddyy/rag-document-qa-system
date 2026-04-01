@@ -14,6 +14,10 @@ import base64
 import mimetypes
 import importlib
 import requests
+import io
+import asyncio
+
+from PIL import Image
 
 _pdf2image = importlib.util.find_spec("pdf2image")
 if _pdf2image is not None:
@@ -256,8 +260,35 @@ def encode_image(path):
         return base64.b64encode(f.read()).decode("utf-8")
 
 
+def preprocess_image(image_path):
+    img = Image.open(image_path)
+
+    width, height = img.size
+
+    # 🔥 adaptive resize
+    if max(width, height) > 1024:
+        img.thumbnail((768, 768))
+    else:
+        img.thumbnail((1024, 1024))
+
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG", quality=65)
+
+    return base64.b64encode(buffer.getvalue()).decode()
+
+
 def call_vision(prompt, image_paths):
-    images_b64 = [encode_image(p) for p in image_paths[:2]]
+    image_paths = image_paths[:1]
+
+    images_b64 = []
+    for image_path in image_paths:
+        size_kb = os.path.getsize(image_path) / 1024
+        print(f"[DEBUG] Image size: {size_kb:.2f} KB")
+
+        if size_kb > 2000:
+            print("[WARNING] Large image detected, aggressively compressing")
+
+        images_b64.append(preprocess_image(image_path))
 
     resp = requests.post(
         "http://192.168.0.100:11434/api/generate",
@@ -267,7 +298,7 @@ def call_vision(prompt, image_paths):
             "images": images_b64,
             "stream": False,
         },
-        timeout=60,
+        timeout=180,
     )
 
     data = resp.json()
@@ -296,8 +327,6 @@ def _build_image_analysis_instructions() -> str:
 
 
 def stream_local_vision(image_path: str, query: str):
-    import base64
-    import requests
     import os
     import json
 
@@ -305,8 +334,12 @@ def stream_local_vision(image_path: str, query: str):
         yield "Image not available."
         return
 
-    with open(image_path, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode()
+    size_kb = os.path.getsize(image_path) / 1024
+    print(f"[DEBUG] Image size: {size_kb:.2f} KB")
+    if size_kb > 2000:
+        print("[WARNING] Large image detected, aggressively compressing")
+
+    img_b64 = preprocess_image(image_path)
 
     response = requests.post(
         "http://192.168.0.100:11434/api/generate",
@@ -317,7 +350,7 @@ def stream_local_vision(image_path: str, query: str):
             "stream": True,
         },
         stream=True,
-        timeout=120,
+        timeout=180,
     )
 
     if response.status_code != 200:
@@ -1002,9 +1035,31 @@ Document excerpts:
         print("[DEBUG] Using VISION (Ollama)")
         logger.info("Using dynamic image reasoning")
         enhanced_query = _build_vision_prompt(query, context=context)
-        answer = call_vision(enhanced_query, vision_image_paths)
-        if answer:
-            yield answer
+        logger.info("[STREAM] Streaming started")
+
+        try:
+            image_path = vision_image_paths[0]
+            has_streamed = False
+            for token in stream_local_vision(image_path, enhanced_query):
+                if not token:
+                    continue
+                has_streamed = True
+                logger.info("[STREAM] Token sent")
+                yield token
+
+            if not has_streamed:
+                answer = call_vision(enhanced_query, vision_image_paths)
+                for char in answer:
+                    logger.info("[STREAM] Token sent")
+                    yield char
+                    await asyncio.sleep(0.01)
+        except Exception as stream_error:
+            logger.warning(f"Vision streaming failed, using simulated streaming fallback: {str(stream_error)}")
+            answer = call_vision(enhanced_query, vision_image_paths)
+            for char in answer:
+                logger.info("[STREAM] Token sent")
+                yield char
+                await asyncio.sleep(0.01)
         return
 
     if not image_mode:
