@@ -231,7 +231,7 @@ def call_local_vision(image_path: str, query: str) -> str:
 
     try:
         resp = requests.post(
-            "http://192.168.0.103:11434/api/generate",
+            "http://192.168.0.100:11434/api/generate",
             json={
                 "model": "qwen2.5vl:3b",
                 "prompt": vision_prompt,
@@ -280,7 +280,7 @@ def stream_local_vision(image_path: str, query: str):
         img_b64 = base64.b64encode(f.read()).decode()
 
     response = requests.post(
-        "http://192.168.0.103:11434/api/generate",
+        "http://192.168.0.100:11434/api/generate",
         json={
             "model": "qwen2.5vl:3b",
             "prompt": query,

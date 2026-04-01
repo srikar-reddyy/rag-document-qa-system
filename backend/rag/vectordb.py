@@ -5,7 +5,7 @@ Handles document storage and similarity search
 
 import chromadb
 from chromadb.config import Settings
-from chromadb.errors import InvalidCollectionException
+from chromadb.errors import NotFoundError
 from typing import List, Dict, Optional
 import uuid
 import logging
@@ -90,7 +90,7 @@ def get_collection():
             client = get_chroma_client()
             _collection = client.get_collection(name=COLLECTION_NAME)
             logger.info(f"Loaded existing collection: {COLLECTION_NAME}")
-        except InvalidCollectionException:
+        except NotFoundError:
             client = get_chroma_client()
             _collection = client.create_collection(
                 name=COLLECTION_NAME,

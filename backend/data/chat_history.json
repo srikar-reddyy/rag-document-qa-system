@@ -2,96 +2,27 @@
   "messages": [
     {
       "role": "user",
-      "content": "hi",
-      "timestamp": "2026-03-31T05:55:48.615361"
+      "content": "describe this image",
+      "timestamp": "2026-04-01T09:50:50.191144"
     },
     {
       "role": "assistant",
-      "content": "No relevant information found in uploaded documents.",
-      "timestamp": "2026-03-31T05:55:48.717137"
-    },
-    {
-      "role": "user",
-      "content": "hi",
-      "timestamp": "2026-03-31T05:55:54.906443"
-    },
-    {
-      "role": "assistant",
-      "content": "No relevant information found in uploaded documents.",
-      "timestamp": "2026-03-31T05:55:54.989602"
-    },
-    {
-      "role": "user",
-      "content": "hi",
-      "timestamp": "2026-03-31T05:56:32.041070"
-    },
-    {
-      "role": "assistant",
-      "content": "1. Image Type: Real-world image",
-      "timestamp": "2026-03-31T05:58:20.654157",
+      "content": "This image is a bar chart titled \"Fig 1.1: Barchart For Representing Accuracy, Precision And Recall.\" The chart compares three metrics: Precision, Recall, and Accuracy. \n\n- **Precision**: Represented by a blue bar, it shows a value of 92%.\n- **Recall**: Represented by a green bar, it shows a value of 89%.\n- **Accuracy**: Represented by a red bar, it shows a value of 91%.\n\nThe x-axis is labeled \"Percentage (%)\" and the y-axis is labeled with the respective metrics. The bars are evenly spaced, indicating equal comparison across the three metrics.",
+      "timestamp": "2026-04-01T09:52:42.278610",
       "sources": [
         {
-          "file": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
-          "page": 1
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "hi",
-      "timestamp": "2026-03-31T05:58:34.141814"
-    },
-    {
-      "role": "assistant",
-      "content": "1. Image Type: Real-world image\n2. Key Elements:\n   - A person wearing a white shirt\n   - Background with blurred greenery and trees\n3. Structure / Flow:\n   - The person is the main focus\n   - The background provides context\n4. Core Concept:\n   - The image depicts a person in an outdoor setting\n5. Interpretation:\n   - The person is likely posing for a photo\n   - The white shirt suggests a casual or semi-formal occasion\n   - The blurred background indicates a shallow depth of field, emphasizing the person in the foreground",
-      "timestamp": "2026-03-31T05:59:15.293856",
-      "sources": [
-        {
-          "doc": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
-          "file": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
-          "page": 1,
-          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: The image appears to show bananas on a surface.",
-          "score": 1.0,
-          "query_similarity": 0.0,
-          "answer_similarity": 0.0,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "WhatsApp Image 2026-03-29 at 16.44.34.jpeg",
-          "page": 1,
-          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: The image appears to show bananas on a surface.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "what does this image describe",
-      "timestamp": "2026-03-31T05:59:56.373563"
-    },
-    {
-      "role": "assistant",
-      "content": "1. Image Type: Real-world image\n2. Key Elements:\n   - A white plate with a chocolate bar and some chocolate pieces.\n   - The chocolate bar is divided into smaller squares.\n   - The chocolate pieces are scattered around the plate.\n   - The plate is placed on a surface with a textured background.\n3. Structure / Flow:\n   - The image shows a close-up view of a chocolate bar and some chocolate pieces on a plate.\n   - The chocolate bar is the central object, with smaller squares visible.\n   - The chocolate pieces are scattered around the plate, some on the plate and some off the plate.\n   - The plate is placed on a textured surface, possibly a table or countertop.\n4. Core Concept:\n   - The image represents a chocolate bar and some chocolate pieces.\n   - The chocolate bar is divided into smaller squares, indicating it is a chocolate bar.\n   - The chocolate pieces are scattered around the plate, suggesting they are pieces of the chocolate bar.\n5. Interpretation:\n   - The image likely represents a chocolate bar that has been broken into smaller pieces.\n   - The chocolate bar is the main focus, with the smaller squares and pieces scattered around it.\n   - The plate and textured background provide context for the setting, suggesting it is a casual or home setting.",
-      "timestamp": "2026-03-31T06:01:07.962084",
-      "sources": [
-        {
-          "doc": "download (4).jpeg",
-          "file": "download (4).jpeg",
+          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
+          "file": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
           "page": 1,
           "text": "This image likely contains objects or a scene without readable text.",
           "score": 1.0,
-          "query_similarity": 0.5175293661886287,
-          "answer_similarity": 0.34643987487620825,
+          "query_similarity": 0.46289908581078154,
+          "answer_similarity": 0.1353786904170526,
           "bbox": null
         },
         {
-          "doc": "download (4).jpeg",
-          "file": "download (4).jpeg",
+          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
+          "file": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
           "page": 1,
           "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text.",
           "score": 1.0,
@@ -102,7 +33,7 @@
       ],
       "highlights": [
         {
-          "doc_name": "download (4).jpeg",
+          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
           "page": 1,
           "text": "This image likely contains objects or a scene without readable text.",
           "score": 1.0,
@@ -111,170 +42,9 @@
           "bbox": null
         },
         {
-          "doc_name": "download (4).jpeg",
+          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
           "page": 1,
           "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "what does image in page 57 describe",
-      "timestamp": "2026-03-31T06:02:26.369615"
-    },
-    {
-      "role": "assistant",
-      "content": "Based on the provided document excerpts, there is no specific description of an image on page 57. The excerpts only contain information from pages 4, 45, and 54-55 of \"Rich Dad Poor Dad\" by Robert T. Kiyosaki. Therefore, I cannot provide details about what an image on page 57 might describe.",
-      "timestamp": "2026-03-31T06:02:45.543960",
-      "sources": [
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "Now that assets and liabilities have been defined through pictures, it may be easier to understand my definitions in words.",
-          "score": 0.29791504278692904,
-          "query_similarity": 0.35482025417462904,
-          "answer_similarity": 0.28892731065310867,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 4,
-          "text": "If you purchase this book without a cover, or purchase a PDF, jpg, or tiff copy of this book, it is likely stolen property or a counterfeit.",
-          "score": 0.2917289298057457,
-          "query_similarity": 0.3197758011797633,
-          "answer_similarity": 0.32148258806726443,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 55,
-          "text": "Now that assets and liabilities have been defined through pictures, it may be easier to understand my definitions in words.",
-          "score": 0.29791504278692904,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 4,
-          "text": "If you purchase this book without a cover, or purchase a PDF, jpg, or tiff copy of this book, it is likely stolen property or a counterfeit.",
-          "score": 0.2917289298057457,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        }
-      ]
-    },
-    {
-      "role": "user",
-      "content": "summarize page 57",
-      "timestamp": "2026-03-31T06:03:03.117493"
-    },
-    {
-      "role": "assistant",
-      "content": "Page 57 of \"Rich Dad Poor Dad\" by Robert T. Kiyosaki does not have direct content quoted from the provided document excerpts. However, based on the surrounding context, it appears to discuss the importance of financial education and the pitfalls of secure but unsophisticated investments. The document mentions that \"secure\" investments are often sanitized, meaning they are made so safe that the gains are less, and that such investments may not solve financial problems but can compound them. It also notes that people who are not versed in financial subjects tend to follow standard advice, such as diversifying and investing in secure options, which may not lead to financial success. This page emphasizes that financial wisdom and boldness are necessary to achieve wealth, rather than simply playing it safe.\n\n[Source: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf, Page 58]",
-      "timestamp": "2026-03-31T06:04:23.645270",
-      "sources": [
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 167,
-          "text": "This text does not appear to be directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" The provided text discusses strategies for making offers and finding deals in real estate, which is not aligned with the content about financial education and secure investments mentioned in the query. Therefore, no sentences from this text are relevant to summarizing page 57.",
-          "score": 1.0,
-          "query_similarity": 0.38672870159807254,
-          "answer_similarity": 0.6647287729976894,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 159,
-          "text": "This text does not appear to be directly relevant to summarizing page 57 of \"Rich Dad Poor Dad.\" However, based on the context provided, a relevant sentence could be:",
-          "score": 1.0,
-          "query_similarity": 0.4245381946449517,
-          "answer_similarity": 0.6210566902876231,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 194,
-          "text": "The text provided does not contain any sentences directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" Therefore, no sentences are extracted as relevant to the query.",
-          "score": 1.0,
-          "query_similarity": 0.47017077805654806,
-          "answer_similarity": 0.39744308238709725,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 145,
-          "text": "Not relevant to summarizing page 57.",
-          "score": 1.0,
-          "query_similarity": 0.7387290825741236,
-          "answer_similarity": 0.19077892551907052,
-          "bbox": null
-        },
-        {
-          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 47,
-          "text": "Not relevant to the query about summarizing page 57.",
-          "score": 1.0,
-          "query_similarity": 0.7578290495913877,
-          "answer_similarity": 0.10484568391134773,
-          "bbox": null
-        }
-      ],
-      "highlights": [
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 167,
-          "text": "This text does not appear to be directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" The provided text discusses strategies for making offers and finding deals in real estate, which is not aligned with the content about financial education and secure investments mentioned in the query. Therefore, no sentences from this text are relevant to summarizing page 57.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 159,
-          "text": "This text does not appear to be directly relevant to summarizing page 57 of \"Rich Dad Poor Dad.\" However, based on the context provided, a relevant sentence could be:",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 194,
-          "text": "The text provided does not contain any sentences directly related to summarizing page 57 of \"Rich Dad Poor Dad.\" Therefore, no sentences are extracted as relevant to the query.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 145,
-          "text": "Not relevant to summarizing page 57.",
-          "score": 1.0,
-          "char_start": null,
-          "char_end": null,
-          "bbox": null
-        },
-        {
-          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
-          "page": 47,
-          "text": "Not relevant to the query about summarizing page 57.",
           "score": 1.0,
           "char_start": null,
           "char_end": null,
