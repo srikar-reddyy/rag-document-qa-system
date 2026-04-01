@@ -45,6 +45,11 @@ try:
 except ImportError:
     convert_from_path = None
 
+try:
+    import fitz
+except ImportError:
+    fitz = None
+
 logger = logging.getLogger(__name__)
 
 MIN_TEXT_THRESHOLD = 50
@@ -714,6 +719,112 @@ def run_ocr_single_page_text(pdf_path: str, page_num: int, lang: str = "eng") ->
     return pytesseract.image_to_string(images[0], lang=lang) or ""
 
 
+def extract_embedded_images(pdf_path: str, output_dir: str) -> List[Dict]:
+    """
+    Extract embedded images from a PDF using PyMuPDF.
+
+    Args:
+        pdf_path: Absolute or relative path to input PDF
+        output_dir: Directory where extracted images will be saved
+
+    Returns:
+        List of image metadata dicts:
+        {
+            "image_path": str,
+            "page": int,
+            "type": "embedded_image"
+        }
+    """
+    extracted: List[Dict] = []
+
+    if fitz is None:
+        logger.warning("PyMuPDF (fitz) is not installed; skipping embedded image extraction")
+        return extracted
+
+    try:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        with fitz.open(pdf_path) as doc:
+            for page_index in range(doc.page_count):
+                page = doc.load_page(page_index)
+                images = page.get_images(full=True)
+
+                for image_index, image_info in enumerate(images):
+                    try:
+                        xref = image_info[0]
+                        image_data = doc.extract_image(xref)
+                        image_bytes = image_data.get("image")
+                        image_ext = (image_data.get("ext") or "png").lower()
+
+                        if not image_bytes:
+                            continue
+
+                        if image_ext == "jpeg":
+                            image_ext = "jpg"
+
+                        image_filename = f"page_{page_index + 1}_embedded_{image_index}.{image_ext}"
+                        image_file_path = output_path / image_filename
+
+                        with open(image_file_path, "wb") as img_file:
+                            img_file.write(image_bytes)
+
+                        extracted.append({
+                            "image_path": str(image_file_path),
+                            "page": page_index + 1,
+                            "type": "embedded_image",
+                        })
+                    except Exception as img_err:
+                        logger.warning(
+                            f"Skipping embedded image on page {page_index + 1}: {str(img_err)}"
+                        )
+    except Exception as e:
+        logger.warning(f"Embedded image extraction failed for {pdf_path}: {str(e)}")
+
+    return extracted
+
+
+def convert_pdf_to_images(pdf_path: str, output_dir: str) -> List[Dict]:
+    """
+    Convert each page of a PDF into a raster image (fallback path).
+
+    Args:
+        pdf_path: Path to PDF
+        output_dir: Directory to save generated page images
+
+    Returns:
+        List of image metadata dicts:
+        {
+            "image_path": str,
+            "page": int,
+            "type": "page_image"
+        }
+    """
+    page_images: List[Dict] = []
+
+    if convert_from_path is None:
+        logger.warning("pdf2image is not installed; cannot generate fallback page images")
+        return page_images
+
+    try:
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        images = convert_from_path(pdf_path, dpi=200, fmt="png", thread_count=1)
+        for page_num, image in enumerate(images, start=1):
+            page_image_path = output_path / f"page_{page_num}.png"
+            image.save(page_image_path, format="PNG")
+            page_images.append({
+                "image_path": str(page_image_path),
+                "page": page_num,
+                "type": "page_image",
+            })
+    except Exception as e:
+        logger.warning(f"Fallback page image conversion failed for {pdf_path}: {str(e)}")
+
+    return page_images
+
+
 def extract_entities(text: str) -> Dict:
     """
     Extract key entities from document text using heuristics and NLP-style rules.
@@ -874,6 +985,34 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
         pdf_author = pdf_metadata.get('/Author') or pdf_metadata.get('/author') or "Unknown"
         pdf_title = pdf_metadata.get('/Title') or pdf_metadata.get('/title') or file_name
 
+        image_output_dir = Path(__file__).parent.parent / "temp" / "pdf_images" / Path(file_name).stem
+        embedded_images = extract_embedded_images(file_path, str(image_output_dir))
+        print(f"Extracted {len(embedded_images)} embedded images")
+
+        if len(embedded_images) == 0:
+            page_images = convert_pdf_to_images(file_path, str(image_output_dir))
+        else:
+            page_images = []
+
+        print(f"Fallback page images: {len(page_images)}")
+
+        document_images = embedded_images + page_images
+        page_to_images: Dict[int, List[Dict]] = {}
+        for img_meta in document_images:
+            page_no = int(img_meta.get("page", 0) or 0)
+            if page_no <= 0:
+                continue
+            page_to_images.setdefault(page_no, []).append(img_meta)
+
+        pages_with_visual_context = sorted(page_to_images.keys())
+        fallback_used = len(embedded_images) == 0
+
+        logger.info(
+            f"PDF visual extraction | file={file_name} | embedded_images={len(embedded_images)} | "
+            f"fallback_page_images={len(page_images)} | fallback_used={fallback_used} | "
+            f"pages_with_visual_context={pages_with_visual_context}"
+        )
+
         page_texts: List[str] = []
         page_ocr_used: List[bool] = []
 
@@ -920,6 +1059,9 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
         for page_num, text in enumerate(page_texts, start=1):
             text = text or ""
             original_text = text
+            page_images_for_chunk = page_to_images.get(page_num, [])
+            page_image_paths = [item.get("image_path") for item in page_images_for_chunk if item.get("image_path")]
+            page_image_types = sorted({item.get("type") for item in page_images_for_chunk if item.get("type")})
 
             if page_num == 1 and text.strip():
                 # Inject primary entity into page 1 text for embedding context
@@ -945,7 +1087,16 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
                     "pdf_title": pdf_title,
                     "file_type": "pdf",
                     "ocr_used": page_ocr_used[page_num - 1],
-                    "has_visual_context": bool("PAGE VISUAL ANALYSIS:" in text),
+                    "has_visual_context": len(page_images_for_chunk) > 0,
+                    "image_paths": "|".join(page_image_paths),
+                    "visual_context_types": "|".join(page_image_types),
+                    "visual_image_count": len(page_image_paths),
+                    "embedded_images_count": len(embedded_images),
+                    "page_images_count": len(page_images),
+                    "fallback_used": fallback_used,
+                    "document_images_count": len(document_images),
+                    "pages_with_visual_context": "|".join(str(p) for p in pages_with_visual_context),
+                    "document_images": document_images,
                     "source_pdf_path": file_path,
                     "text_length": len(original_text.strip()),
                     # Entity extraction results
@@ -958,10 +1109,15 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
             })
 
             logger.info(
-                f"Page {page_num} → length: {len(original_text.strip())} → ocr_used: {page_ocr_used[page_num - 1]}"
+                f"Page {page_num} → length: {len(original_text.strip())} → ocr_used: {page_ocr_used[page_num - 1]} "
+                f"→ has_visual_context: {len(page_images_for_chunk) > 0}"
             )
 
-        logger.info(f"✓ Extracted {len(documents)} pages from {file_name}")
+        logger.info(
+            f"✓ Extracted {len(documents)} pages from {file_name} | "
+            f"embedded_images={len(embedded_images)} | fallback_used={fallback_used} | "
+            f"pages_with_visual_context={pages_with_visual_context}"
+        )
         return documents
     
     except Exception as e:

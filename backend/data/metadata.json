@@ -1,18 +1,3 @@
 {
-  "documents": [
-    {
-      "document_id": "3bb0ed17-a2a4-4969-98c4-6e4d810cf391",
-      "file_name": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
-      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/3bb0ed17-a2a4-4969-98c4-6e4d810cf391.jpeg",
-      "file_size": 14514,
-      "uploaded_at": "2026-04-01T09:50:41.948911"
-    },
-    {
-      "document_id": "7c86de16-e397-4ff3-b6be-9d3ad604ccd9",
-      "file_name": "B2702010610.pdf",
-      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/7c86de16-e397-4ff3-b6be-9d3ad604ccd9.pdf",
-      "file_size": 336169,
-      "uploaded_at": "2026-04-01T09:52:57.793566"
-    }
-  ]
+  "documents": []
 }

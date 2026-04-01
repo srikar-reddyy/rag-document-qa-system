@@ -13,6 +13,7 @@ import re
 import base64
 import mimetypes
 import importlib
+import requests
 
 _pdf2image = importlib.util.find_spec("pdf2image")
 if _pdf2image is not None:
@@ -171,27 +172,60 @@ def _select_model_for_query(query: str, retrieved_chunks: List[Dict]) -> str:
 
 
 def has_image_context(chunks: List[Dict]) -> bool:
-    return any(
-        (c.get("metadata", {}) or {}).get("file_type") == "image"
-        for c in (chunks or [])
-    )
+    return len(_collect_chunk_image_paths(chunks, max_images=1)) > 0
+
+
+def is_visual_query(query: str) -> bool:
+    query = (query or "").lower()
+
+    visual_keywords = [
+        "image", "figure", "diagram", "chart",
+        "graph", "plot", "visual", "illustration",
+        "screenshot", "picture"
+    ]
+
+    return any(word in query for word in visual_keywords)
 
 
 def route_model(query: str, chunks: List[Dict]) -> str:
-    if any((c.get("metadata", {}) or {}).get("file_type") == "image" for c in (chunks or [])):
+    has_visual_context = has_image_context(chunks)
+    if is_visual_query(query) and has_visual_context:
         return "vision"
     return "text"
 
 
-def _get_primary_image_path(chunks: List[Dict]) -> str | None:
+def _collect_chunk_image_paths(chunks: List[Dict], max_images: int = 2) -> List[str]:
+    image_paths: List[str] = []
+    seen = set()
+
     for chunk in (chunks or []):
         metadata = chunk.get("metadata", {}) or {}
-        if (metadata.get("file_type") or "").lower() != "image":
-            continue
-        image_path = metadata.get("source_image_path") or metadata.get("file_path")
-        if image_path:
-            return image_path
-    return None
+
+        raw_paths = metadata.get("image_paths", "")
+        for path in str(raw_paths).split("|"):
+            cleaned = path.strip()
+            if not cleaned or cleaned in seen:
+                continue
+            image_paths.append(cleaned)
+            seen.add(cleaned)
+            if len(image_paths) >= max_images:
+                return image_paths
+
+        image_file_path = metadata.get("source_image_path") or metadata.get("file_path")
+        if image_file_path:
+            cleaned = str(image_file_path).strip()
+            if cleaned and cleaned not in seen:
+                image_paths.append(cleaned)
+                seen.add(cleaned)
+                if len(image_paths) >= max_images:
+                    return image_paths
+
+    return image_paths
+
+
+def _get_primary_image_path(chunks: List[Dict]) -> str | None:
+    paths = _collect_chunk_image_paths(chunks, max_images=1)
+    return paths[0] if paths else None
 
 
 def _build_vision_prompt(query: str, context: str | None = None) -> str:
@@ -217,42 +251,37 @@ Be precise. Do not give generic explanations.
     return base
 
 
+def encode_image(path):
+    with open(path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
+
+
+def call_vision(prompt, image_paths):
+    images_b64 = [encode_image(p) for p in image_paths[:2]]
+
+    resp = requests.post(
+        "http://192.168.0.100:11434/api/generate",
+        json={
+            "model": "qwen2.5vl:3b",
+            "prompt": prompt,
+            "images": images_b64,
+            "stream": False,
+        },
+        timeout=60,
+    )
+
+    data = resp.json()
+    return data.get("response", "")
+
+
 def call_local_vision(image_path: str, query: str) -> str:
-    import base64
-    import requests
     import os
 
     if not image_path or not os.path.exists(image_path):
         raise Exception("Invalid image path")
 
-    with open(image_path, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode()
-    vision_prompt = query
-
     try:
-        resp = requests.post(
-            "http://192.168.0.100:11434/api/generate",
-            json={
-                "model": "qwen2.5vl:3b",
-                "prompt": vision_prompt,
-                "images": [img_b64],
-                "stream": False,
-            },
-            timeout=60,
-        )
-
-        if resp.status_code != 200:
-            raise Exception(f"Ollama error: {resp.text[:400]}")
-
-        try:
-            data = resp.json()
-        except Exception as json_error:
-            raise Exception(f"Invalid JSON from Ollama: {str(json_error)}")
-
-        if "response" not in data:
-            raise Exception("Invalid Ollama response format")
-
-        result = (data.get("response") or "").strip()
+        result = (call_vision(query, [image_path]) or "").strip()
         if not result:
             raise Exception("Empty response from Ollama")
 
@@ -716,7 +745,13 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
         
         requested_points = _extract_requested_point_count(query)
         model_name = _select_model_for_query(query, retrieved_chunks)
+        vision_image_paths = _collect_chunk_image_paths(retrieved_chunks, max_images=2)
+        has_visual_context = len(vision_image_paths) > 0
+        visual_query = is_visual_query(query)
         image_mode = route_model(query, retrieved_chunks) == "vision"
+        print(f"[DEBUG] Query: {query}")
+        print(f"[DEBUG] is_visual_query: {visual_query}")
+        print(f"[DEBUG] has_visual_context: {has_visual_context}")
         logger.info(f"User query: {query}")
         logger.info(
             "Generation mode | image_mode=%s | model=%s | chunks=%s",
@@ -742,17 +777,21 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
 
         # Call LLM
         if image_mode:
-            image_path = _get_primary_image_path(retrieved_chunks)
-            logger.info(f"Image path: {image_path}")
+            print("[ROUTING] Using VISION model")
+            logger.info(f"Image paths: {vision_image_paths}")
             try:
-                if not image_path:
-                    logger.error("No image path found in metadata")
-                    raise Exception("Image path missing")
+                image_paths = [p for p in vision_image_paths if p.strip()]
+
+                if len(image_paths) > 0:
+                    print("[DEBUG] Using VISION (Ollama)")
+                else:
+                    print("[DEBUG] Using TEXT (OpenRouter)")
+                    raise Exception("No image paths found in metadata")
 
                 enhanced_query = _build_vision_prompt(query, context=context)
 
                 logger.info("Calling Ollama vision model...")
-                answer = call_local_vision(image_path, enhanced_query)
+                answer = call_vision(enhanced_query, image_paths)
                 if not answer or not answer.strip():
                     raise Exception("Empty response from Ollama")
                 logger.info(f"Ollama response length: {len(answer)}")
@@ -769,6 +808,7 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
                 if not answer or not answer.strip():
                     answer = "Failed to process image. Please try again."
         else:
+            print("[ROUTING] Using TEXT model (OpenRouter)")
             answer = await call_llm_api(
                 prompt,
                 model="qwen/qwen-2.5-7b-instruct",
@@ -776,6 +816,7 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
                 temperature=temperature,
                 messages=messages,
             )
+            print("[DEBUG] Using TEXT (OpenRouter)")
 
         if image_mode:
             valid_img, img_reason = _passes_image_quality_check(answer)
@@ -867,7 +908,13 @@ async def generate_answer_stream(query: str, retrieved_chunks: List[Dict]) -> As
     requested_points = _extract_requested_point_count(query)
     prompt = build_rag_prompt(query, context, requested_points=requested_points)
     model_name = _select_model_for_query(query, retrieved_chunks)
+    vision_image_paths = _collect_chunk_image_paths(retrieved_chunks, max_images=2)
+    has_visual_context = len(vision_image_paths) > 0
+    visual_query = is_visual_query(query)
     image_mode = route_model(query, retrieved_chunks) == "vision"
+    print(f"[DEBUG] Query: {query}")
+    print(f"[DEBUG] is_visual_query: {visual_query}")
+    print(f"[DEBUG] has_visual_context: {has_visual_context}")
     messages = _build_llm_messages(
         prompt,
         image_data_urls=[],
@@ -945,19 +992,23 @@ Document excerpts:
         return
 
     if image_mode and not requested_points:
-        image_path = _get_primary_image_path(retrieved_chunks)
-        logger.info(f"Image path: {image_path}")
-        if not image_path:
+        print("[ROUTING] Using VISION model")
+        logger.info(f"Image paths: {vision_image_paths}")
+        if not vision_image_paths:
             logger.error("No image path found in metadata")
             yield "Image not available."
             return
 
+        print("[DEBUG] Using VISION (Ollama)")
         logger.info("Using dynamic image reasoning")
         enhanced_query = _build_vision_prompt(query, context=context)
-        for token in stream_local_vision(image_path, enhanced_query):
-            if token:
-                yield token
+        answer = call_vision(enhanced_query, vision_image_paths)
+        if answer:
+            yield answer
         return
+
+    if not image_mode:
+        print("[ROUTING] Using TEXT model (OpenRouter)")
 
     try:
         async for token in stream_llm_api(

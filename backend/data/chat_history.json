@@ -2,50 +2,99 @@
   "messages": [
     {
       "role": "user",
-      "content": "describe this image",
-      "timestamp": "2026-04-01T09:50:50.191144"
+      "content": "about image in page 57",
+      "timestamp": "2026-04-01T14:20:48.251420"
     },
     {
       "role": "assistant",
-      "content": "This image is a bar chart titled \"Fig 1.1: Barchart For Representing Accuracy, Precision And Recall.\" The chart compares three metrics: Precision, Recall, and Accuracy. \n\n- **Precision**: Represented by a blue bar, it shows a value of 92%.\n- **Recall**: Represented by a green bar, it shows a value of 89%.\n- **Accuracy**: Represented by a red bar, it shows a value of 91%.\n\nThe x-axis is labeled \"Percentage (%)\" and the y-axis is labeled with the respective metrics. The bars are evenly spaced, indicating equal comparison across the three metrics.",
-      "timestamp": "2026-04-01T09:52:42.278610",
+      "content": "I'm unable to provide details about the image on page 57 as the text excerpt does not include any description of it. The provided information only mentions the presence of an image without any textual content related to its specifics.\n\n[Document: Rich Dad Poor Dad by Robert T. Kiyosaki.pdf, Page: 57, Section: Unknown Section]",
+      "timestamp": "2026-04-01T14:22:58.826535",
       "sources": [
         {
-          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
-          "file": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
-          "page": 1,
-          "text": "This image likely contains objects or a scene without readable text.",
+          "doc": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 57,
+          "text": "Image content present on page 57",
           "score": 1.0,
-          "query_similarity": 0.46289908581078154,
-          "answer_similarity": 0.1353786904170526,
+          "query_similarity": 0.8534188911463993,
+          "answer_similarity": 0.6063296119289494,
+          "bbox": null
+        }
+      ],
+      "highlights": [
+        {
+          "doc_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 57,
+          "text": "Image content present on page 57",
+          "score": 1.0,
+          "char_start": null,
+          "char_end": null,
+          "bbox": null
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "about image in page 56",
+      "timestamp": "2026-04-01T14:30:06.875337"
+    },
+    {
+      "role": "assistant",
+      "content": "No answer generated.",
+      "timestamp": "2026-04-01T14:31:41.265226",
+      "sources": [
+        {
+          "file": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+          "page": 56
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": "what is precision percentage in this image",
+      "timestamp": "2026-04-01T14:32:47.748742"
+    },
+    {
+      "role": "assistant",
+      "content": "The precision percentage in the image is 92%.",
+      "timestamp": "2026-04-01T14:33:18.428741",
+      "sources": [
+        {
+          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
+          "file": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
+          "page": 1,
+          "text": "The precision percentage in the image is 92%.",
+          "score": 0.9521402115466208,
+          "query_similarity": 0.9129822028120378,
+          "answer_similarity": 1.0000000000000002,
           "bbox": null
         },
         {
-          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
-          "file": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
+          "doc": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
+          "file": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
           "page": 1,
-          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text.",
-          "score": 1.0,
-          "query_similarity": 0.0,
+          "text": "Image content present on page 1",
+          "score": 0.22659680267535964,
+          "query_similarity": 0.22659680267535964,
           "answer_similarity": 0.0,
           "bbox": null
         }
       ],
       "highlights": [
         {
-          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
+          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
           "page": 1,
-          "text": "This image likely contains objects or a scene without readable text.",
-          "score": 1.0,
+          "text": "The precision percentage in the image is 92%.",
+          "score": 0.9521402115466208,
           "char_start": null,
           "char_end": null,
           "bbox": null
         },
         {
-          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.jpeg",
+          "doc_name": "WhatsApp Image 2026-03-30 at 11.24.00.pdf",
           "page": 1,
-          "text": "Image Content: SUBJECT: Visual Description: IMAGE ANALYSIS Visual Description: This image likely contains objects or a scene without readable text.",
-          "score": 1.0,
+          "text": "Image content present on page 1",
+          "score": 0.22659680267535964,
           "char_start": null,
           "char_end": null,
           "bbox": null

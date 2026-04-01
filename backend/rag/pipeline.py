@@ -8,7 +8,7 @@ import logging
 import re
 
 from .loader import load_document
-from .chunker import chunk_documents
+from .chunker import chunk_documents, Document
 from .embedder import embed_texts
 from .vectordb import add_documents, get_document_metadata, get_document_chunks, get_chunks_by_page
 from .retriever import retrieve, extract_sources, detect_page_query
@@ -717,20 +717,158 @@ async def process_document(file_path: str, file_name: str, document_id: str = No
         # Step 1: Load document
         documents = load_document(file_path, file_name)
         logger.info(f"Loaded {len(documents)} pages/sections")
+
+        if documents:
+            first_meta = documents[0].get("metadata", {}) or {}
+            if (first_meta.get("file_type") or "").lower() == "pdf":
+                embedded_images_count = int(first_meta.get("embedded_images_count", 0) or 0)
+                page_images_count = int(first_meta.get("page_images_count", 0) or 0)
+                fallback_used = bool(first_meta.get("fallback_used", False))
+                pages_with_visual_context = first_meta.get("pages_with_visual_context", "")
+
+                logger.info(
+                    f"Visual summary | embedded_images={embedded_images_count} | "
+                    f"fallback_used={fallback_used} | fallback_page_images={page_images_count} | "
+                    f"pages_with_visual_context={pages_with_visual_context or 'none'}"
+                )
         
         # Step 2: Chunk documents (returns LangChain Document objects)
         chunks = chunk_documents(documents)
         logger.info(f"Created {len(chunks)} chunks")
+
+        # Link page-level document_images to chunk-level image metadata
+        document_images = []
+
+        for doc in documents:
+            meta = doc.get("metadata", {}) or {}
+            imgs = meta.get("document_images", [])
+
+            if imgs:
+                document_images.extend(imgs)
+
+        unique = {}
+        for img in document_images:
+            unique[img["image_path"]] = img
+
+        document_images = list(unique.values())
+        print("[DEBUG TOTAL IMAGES]", len(document_images))
+
+        for i, chunk in enumerate(chunks):
+            chunk_page = chunk.metadata.get("page")
+
+            matched_images = [
+                img["image_path"]
+                for img in document_images
+                if img.get("page") == chunk_page
+            ]
+
+            # 🔥 IMPORTANT: CREATE NEW METADATA OBJECT
+            new_metadata = {
+                **chunk.metadata,
+                "image_paths": "|".join(matched_images),
+                "has_visual_context": len(matched_images) > 0
+            }
+
+            # 🔥 CRITICAL: REASSIGN BACK TO CHUNK
+            chunks[i].metadata = new_metadata
+
+            print(f"[DEBUG] chunk_page={chunk_page}")
+            print(f"[DEBUG] matched_images={matched_images}")
+            print(f"[DEBUG] has_visual_context={chunks[i].metadata['has_visual_context']}")
+
+        # Create image-only fallback chunks for pages that have images but no text chunks
+        image_pages = set()
+        for img in document_images:
+            img_page = _to_int(img.get("page"), None)
+            if img_page and img_page > 0:
+                image_pages.add(img_page)
+
+        chunk_pages = set(
+            _to_int(c.metadata.get("page", c.metadata.get("page_number")), 0) or 0
+            for c in chunks
+        )
+        chunk_pages = {p for p in chunk_pages if p > 0}
+
+        missing_pages = image_pages - chunk_pages
+
+        base_meta = (documents[0].get("metadata", {}) or {}) if documents else {}
+        total_pages = _to_int(base_meta.get("total_pages"), 0) or max(chunk_pages.union(image_pages) or {0})
+
+        for page in sorted(missing_pages):
+            print(f"[FIX] Creating image-only chunk for page {page}")
+
+            image_paths = [
+                img.get("image_path")
+                for img in document_images
+                if (_to_int(img.get("page"), None) == page) and img.get("image_path")
+            ]
+            visual_types = sorted({
+                str(img.get("type") or "embedded_image")
+                for img in document_images
+                if _to_int(img.get("page"), None) == page
+            })
+
+            chunk = Document(
+                page_content=f"Image content present on page {page}",
+                metadata={
+                    **base_meta,
+                    "page": page,
+                    "page_number": page,
+                    "total_pages": total_pages,
+                    "has_visual_context": True,
+                    "image_paths": "|".join(image_paths),
+                    "visual_context_types": "|".join(visual_types) if visual_types else "embedded_image",
+                    "visual_image_count": len(image_paths),
+                    "is_image_only": True,
+                }
+            )
+
+            chunks.append(chunk)
+
+        pages_with_chunks = set(
+            _to_int(c.metadata.get("page", c.metadata.get("page_number")), 0) or 0
+            for c in chunks
+        )
+        pages_with_chunks = {p for p in pages_with_chunks if p > 0}
+        print(
+            "[FINAL CHECK] Missing pages:",
+            set(range(1, total_pages + 1)) - pages_with_chunks
+        )
+
+        for c in chunks[:3]:
+            print("[AFTER FIX] image_paths:", c.metadata.get("image_paths"))
+            print("[AFTER FIX] has_visual_context:", c.metadata.get("has_visual_context"))
+
+        if len(chunks) > 5:
+            print("[AFTER FIX]", chunks[5].metadata["image_paths"])
         
         # Add document_id to all chunk metadata
         if document_id:
             for chunk in chunks:
                 chunk.metadata["document_id"] = document_id
                 chunk.metadata["doc_id"] = document_id
+
+        # Protect image fields without overwriting existing linked values
+        for chunk in chunks:
+            if "image_paths" not in chunk.metadata:
+                chunk.metadata["image_paths"] = ""
+
+            if "has_visual_context" not in chunk.metadata:
+                chunk.metadata["has_visual_context"] = False
+
+        # Final metadata verification right before ChromaDB insert
+        for c in chunks[:3]:
+            print("[FINAL DEBUG] page:", c.metadata.get("page"))
+            print("[FINAL DEBUG] image_paths:", c.metadata.get("image_paths"))
+            print("[FINAL DEBUG] has_visual_context:", c.metadata.get("has_visual_context"))
         
         # Step 3: Extract data for embeddings and storage
         texts = [chunk.page_content for chunk in chunks]
         metadatas = [chunk.metadata for chunk in chunks]
+
+        print("=== FINAL CHECK BEFORE EMBEDDING ===")
+        for c in chunks[:5]:
+            print(c.metadata.get("page"), c.metadata.get("image_paths"))
         
         logger.info("Generating embeddings...")
         embeddings = embed_texts(texts)

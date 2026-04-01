@@ -15,6 +15,13 @@ logger = logging.getLogger(__name__)
 PAGE_QUERY_REGEX = re.compile(r"\bpage(?:\s+number)?\s*(\d+)\b", re.IGNORECASE)
 
 
+def extract_page_number(query: str) -> int | None:
+    match = re.search(r'page\s*(\d+)', (query or "").lower())
+    if match:
+        return int(match.group(1))
+    return None
+
+
 def detect_page_query(query: str) -> int | None:
     """
     Detect explicit page-based queries such as:
@@ -87,12 +94,14 @@ def retrieve(
         
         logger.info(f"Filtering by {len(selected_document_ids)} selected document(s)")
 
+        query_page_number = page_number or extract_page_number(query)
+
         # Page-aware retrieval path (bypass semantic vector search)
-        if page_number is not None:
-            logger.info(f"Page-aware retrieval for page {page_number}")
+        if query_page_number is not None:
+            logger.info(f"Page-aware retrieval for page {query_page_number}")
             page_chunks = get_chunks_by_page(
                 document_ids=selected_document_ids,
-                page_number=page_number,
+                page_number=query_page_number,
                 limit=max(top_k, broad_k or top_k),
             )
 
@@ -100,7 +109,7 @@ def retrieve(
             for chunk in page_chunks:
                 metadata = chunk.get("metadata", {})
                 doc_text = chunk.get("text", "")
-                page = _to_int(metadata.get("page", metadata.get("page_number")), page_number) or page_number
+                page = _to_int(metadata.get("page", metadata.get("page_number")), query_page_number) or query_page_number
                 retrieved_chunks.append({
                     "text": doc_text,
                     "metadata": metadata,
@@ -113,6 +122,33 @@ def retrieve(
                     "char_end": _to_int(metadata.get("char_end")),
                     "bbox": _parse_bbox(metadata.get("bbox")),
                 })
+
+            if not retrieved_chunks:
+                print("[FALLBACK] No chunks for page — retrieving nearby pages")
+                nearby_pages = [p for p in [query_page_number - 1, query_page_number + 1] if p > 0]
+                for nearby_page in nearby_pages:
+                    nearby_chunks = get_chunks_by_page(
+                        document_ids=selected_document_ids,
+                        page_number=nearby_page,
+                        limit=max(1, top_k // 2),
+                    )
+
+                    for chunk in nearby_chunks:
+                        metadata = chunk.get("metadata", {})
+                        doc_text = chunk.get("text", "")
+                        page = _to_int(metadata.get("page", metadata.get("page_number")), nearby_page) or nearby_page
+                        retrieved_chunks.append({
+                            "text": doc_text,
+                            "metadata": metadata,
+                            "relevance_score": 0.8,
+                            "rerank_score": 0.8,
+                            "score": 0.8,
+                            "doc_name": metadata.get("doc_name", metadata.get("document_name", metadata.get("file_name", "Unknown"))),
+                            "page": page,
+                            "char_start": _to_int(metadata.get("char_start")),
+                            "char_end": _to_int(metadata.get("char_end")),
+                            "bbox": _parse_bbox(metadata.get("bbox")),
+                        })
 
             logger.info(f"Retrieved {len(retrieved_chunks)} chunks via page filter")
             return retrieved_chunks[:top_k]
@@ -161,6 +197,27 @@ def retrieve(
                 "char_end": _to_int(metadata.get("char_end")),
                 "bbox": _parse_bbox(metadata.get("bbox")),
             })
+
+        page_num = extract_page_number(query)
+
+        if page_num:
+            print(f"[DEBUG] Page-specific query detected: {page_num}")
+
+            page_chunks = [
+                c for c in retrieved_chunks
+                if c.get("metadata", {}).get("page") == page_num
+            ]
+
+            if page_chunks:
+                print(f"[DEBUG] Using {len(page_chunks)} chunks from page {page_num}")
+                retrieved_chunks = page_chunks
+            else:
+                print("[DEBUG] No exact page match, using semantic search fallback")
+                retrieved_chunks = sorted(
+                    retrieved_chunks,
+                    key=lambda c: c.get("metadata", {}).get("page") == page_num,
+                    reverse=True
+                )
 
         # Dynamic reranking stage (query-to-chunk semantic relevance)
         for chunk in retrieved_chunks:
