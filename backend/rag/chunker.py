@@ -7,6 +7,7 @@ from typing import List, Dict, Any
 import logging
 import importlib
 import re
+import json
 from dataclasses import dataclass
 
 from .embedder import embed_text
@@ -49,6 +50,44 @@ MAX_OVERLAP_SENTENCES = 2
 # Quality filters
 MIN_CHUNK_TOKENS = 20
 DEDUP_SIMILARITY_THRESHOLD = 0.90
+
+SECTION_KEYWORDS = {
+    "conclusion": [
+        "conclusion",
+        "conclusions",
+        "future work",
+        "closing remarks",
+        "summary",
+    ],
+    "results": [
+        "results",
+        "findings",
+        "evaluation",
+        "experimental results",
+        "experiments",
+    ],
+    "introduction": [
+        "introduction",
+        "intro",
+        "background",
+        "overview",
+    ],
+    "literature review": [
+        "literature review",
+        "related work",
+        "prior work",
+        "review of literature",
+        "state of the art",
+    ],
+    "methodology": [
+        "methodology",
+        "methods",
+        "method",
+        "approach",
+        "experimental setup",
+        "materials and methods",
+    ],
+}
 
 _tokenizer = None
 
@@ -390,32 +429,125 @@ def detect_section_title(text: str) -> str:
     Returns:
         Detected section title or "Unknown"
     """
-    lines = text.strip().split('\n')
-    
+    lines = [line.strip() for line in (text or "").split("\n") if line and line.strip()]
     if not lines:
         return "Unknown"
-    
-    first_line = lines[0].strip()
-    
-    # Check if first line is all caps (common for section headers)
-    if first_line.isupper() and len(first_line.split()) <= 5 and len(first_line) > 0:
-        return first_line
-    
-    # Check for numbered sections (e.g., "1. Introduction", "1.1 Methods")
-    import re
-    numbered_pattern = r'^(\d+\.)+\s*([A-Z][a-zA-Z\s]+)$'
-    match = re.match(numbered_pattern, first_line)
-    if match:
-        return match.group(2).strip()
-    
-    # Check for title case headings (first line is short and title-cased)
-    if (len(first_line.split()) <= 6 and 
-        first_line[0].isupper() and 
-        len(first_line) < 100 and
-        not first_line.endswith(('.', '!', '?'))):
-        return first_line
-    
+
+    heading_lines = lines[:5]
+    for line in heading_lines:
+        candidate = re.sub(r"^(\d+\.)+\s*", "", line).strip(" :-\t")
+        if not candidate:
+            continue
+
+        lowered = candidate.lower()
+
+        for canonical, aliases in SECTION_KEYWORDS.items():
+            for alias in aliases:
+                if lowered == alias:
+                    return canonical.title()
+                if lowered.startswith(f"{alias} ") or lowered.startswith(f"{alias}:") or lowered.startswith(f"{alias}-"):
+                    return canonical.title()
+
+        if re.match(r"^(\d+\.)+\s*[A-Za-z][A-Za-z\s\-]{1,80}$", line):
+            return candidate
+
+        if candidate.isupper() and len(candidate.split()) <= 8:
+            return candidate
+
     return "Unknown"
+
+
+def normalize_section_title(section_title: str) -> str:
+    normalized = _normalize_whitespace(section_title).lower()
+    if not normalized or normalized == "unknown":
+        return "unknown"
+
+    for canonical, aliases in SECTION_KEYWORDS.items():
+        if any(alias in normalized for alias in aliases):
+            return canonical
+
+    return normalized
+
+
+def _parse_page_words(metadata: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Load page-level word annotations from loader metadata."""
+    raw = metadata.get("page_words_json")
+    if not raw:
+        return []
+
+    try:
+        entries = json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        return []
+
+    if not isinstance(entries, list):
+        return []
+
+    words: List[Dict[str, Any]] = []
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+
+        text = str(item.get("text") or "")
+        char_start = _to_int(item.get("char_start"), -1)
+        char_end = _to_int(item.get("char_end"), -1)
+        bbox = item.get("bbox")
+
+        if not text or char_start < 0 or char_end <= char_start:
+            continue
+
+        if not isinstance(bbox, (list, tuple)) or len(bbox) < 4:
+            continue
+
+        try:
+            box = [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])]
+        except Exception:
+            continue
+
+        words.append({
+            "text": text,
+            "char_start": char_start,
+            "char_end": char_end,
+            "bbox": box,
+        })
+
+    words.sort(key=lambda w: int(w.get("char_start", 0)))
+    return words
+
+
+def _slice_chunk_words(
+    page_words: List[Dict[str, Any]],
+    chunk_char_start: int,
+    chunk_char_end: int,
+    chunk_text: str,
+) -> List[Dict[str, Any]]:
+    """Build chunk-local word annotations from page-level words."""
+    if not page_words or chunk_char_end <= chunk_char_start:
+        return []
+
+    out: List[Dict[str, Any]] = []
+    chunk_len = len(chunk_text or "")
+
+    for word in page_words:
+        ws = _to_int(word.get("char_start"), -1)
+        we = _to_int(word.get("char_end"), -1)
+        if ws < chunk_char_start or we > chunk_char_end:
+            continue
+
+        rel_start = max(0, ws - chunk_char_start)
+        rel_end = min(chunk_len, max(rel_start, we - chunk_char_start))
+        if rel_end <= rel_start:
+            continue
+
+        word_text = (chunk_text or "")[rel_start:rel_end] or str(word.get("text") or "")
+        out.append({
+            "text": word_text,
+            "char_start": rel_start,
+            "char_end": rel_end,
+            "bbox": word.get("bbox"),
+        })
+
+    return out
 
 
 def chunk_documents(
@@ -447,6 +579,7 @@ def chunk_documents(
         List of LangChain Document objects with enriched metadata
     """
     all_chunked_docs = []
+    active_section_by_document: Dict[str, str] = {}
     total_sentences = 0
     total_tokens = 0
     
@@ -455,6 +588,8 @@ def chunk_documents(
         metadata = doc.get("metadata", {})
         page_number = _to_int(metadata.get("page", metadata.get("page_number", 1)), 1)
         adaptive_size = chunk_size or infer_adaptive_chunk_size(text, metadata)
+        page_words = _parse_page_words(metadata)
+        document_name = metadata.get("file_name", metadata.get("document_name", "unknown"))
         
         if not text or not text.strip():
             logger.warning(
@@ -487,8 +622,16 @@ def chunk_documents(
             char_end = min(len(text), char_start + len(chunk_body))
             cursor = max(cursor, char_end)
 
-            # Detect section title from chunk content
-            section_title = detect_section_title(chunk_body)
+            # Detect section title from chunk content, then propagate active section
+            # so continuation chunks inherit the section heading.
+            detected_section_title = detect_section_title(chunk_body)
+            if detected_section_title != "Unknown":
+                active_section_by_document[document_name] = detected_section_title
+                section_title = detected_section_title
+            else:
+                section_title = active_section_by_document.get(document_name, "Unknown")
+
+            section_title_normalized = normalize_section_title(section_title)
 
             token_count = count_tokens(chunk_body)
             sentence_count = len(split_sentences(chunk_body))
@@ -512,14 +655,17 @@ def chunk_documents(
             
             # Enrich metadata - use only flat, primitive types for ChromaDB compatibility
             chunk_metadata = dict(metadata)
-            document_name = metadata.get("file_name", metadata.get("document_name", "unknown"))
+            chunk_id = f"{document_name}::p{page_number}::c{chunk_idx}"
+            chunk_words = _slice_chunk_words(page_words, char_start, char_end, chunk_body)
 
             chunk_metadata.update({
                 "doc_name": document_name,
                 "document_name": document_name,
+                "chunk_id": chunk_id,
                 "page": page_number,
                 "page_number": page_number,
                 "section_title": section_title,
+                "section_title_normalized": section_title_normalized,
                 "chunk_index": chunk_idx,
                 "total_chunks": total_chunks,
                 "chunk_size_tokens": token_count,
@@ -529,12 +675,17 @@ def chunk_documents(
                 "token_count": token_count,
                 "semantic_density": float(semantic_density),
                 "bbox": metadata.get("bbox", ""),
+                "words_json": json.dumps(chunk_words, ensure_ascii=False),
+                "words_count": len(chunk_words),
                 # Entity extraction data (flattened for ChromaDB)
                 "primary_entity": metadata.get("primary_entity", "Unknown"),
                 "entity_persons": persons_str,
                 "entity_organizations": orgs_str,
                 "entity_roles": roles_str
             })
+
+            # Keep chunk-level metadata compact and avoid repeating page-level words.
+            chunk_metadata.pop("page_words_json", None)
 
             chunk = Document(
                 page_content=chunk_body,

@@ -1,9 +1,9 @@
 /**
  * PDFViewer Component
- * Modern PDF viewer with navigation and zoom controls
+ * Bbox-only highlight rendering driven by backend-provided word boxes.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import 'react-pdf/dist/esm/Page/AnnotationLayer.css';
@@ -12,225 +12,294 @@ import 'react-pdf/dist/esm/Page/TextLayer.css';
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-const USE_UNDERLINE_HIGHLIGHT = true;
-const STOPWORDS = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'was', 'are', 'in', 'on', 'to', 'of', 'by', 'as', 'an', 'a']);
+const normalizeBoxes = (boxes) => {
+	if (!Array.isArray(boxes)) return [];
 
-const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return boxes
+		.map((box) => {
+			if (!Array.isArray(box) || box.length < 4) return null;
+			const parsed = box.slice(0, 4).map((value) => Number(value));
+			if (!parsed.every((value) => Number.isFinite(value))) return null;
+			const [x1, y1, x2, y2] = parsed;
+			if (x2 <= x1 || y2 <= y1) return null;
+			return [x1, y1, x2, y2];
+		})
+		.filter(Boolean);
+};
 
-function highlightText(text, query, useUnderline = false) {
-  if (!query) return text;
-  const escaped = escapeRegExp(query);
-  const regex = new RegExp(`(${escaped})`, 'gi');
-  const className = useUnderline ? 'highlight-underline' : 'highlight';
-  return text.replace(regex, `<span class="${className}">$1</span>`);
-}
+const mergeAdjacentBoxes = (boxes) => {
+	if (!Array.isArray(boxes) || boxes.length <= 1) return boxes || [];
 
-function highlightByTokens(text, tokens, useUnderline = false) {
-  if (!tokens || tokens.length === 0) return text;
-  const className = useUnderline ? 'highlight-underline' : 'highlight';
-  const pattern = tokens
-    .map((token) => escapeRegExp(token))
-    .sort((a, b) => b.length - a.length)
-    .join('|');
+	const sorted = [...boxes].sort((a, b) => {
+		if (Math.abs(a[1] - b[1]) > 1) return a[1] - b[1];
+		return a[0] - b[0];
+	});
 
-  if (!pattern) return text;
+	const merged = [];
+	const lineTolerance = 3;
+	const gapTolerance = 8;
 
-  const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
-  return text.replace(regex, `<span class="${className}">$1</span>`);
-}
+	sorted.forEach((box) => {
+		if (merged.length === 0) {
+			merged.push([...box]);
+			return;
+		}
 
-function normalizeHighlightQuery(rawQuery) {
-  if (!rawQuery) return '';
-  let q = String(rawQuery).trim();
-  q = q.replace(/^\s*(?:[>\-•]+\s*)+/, '');
-  q = q.replace(/^"|"$/g, '');
-  q = q.replace(/\s+/g, ' ').trim();
-  return q;
-}
+		const last = merged[merged.length - 1];
+		const sameLine = Math.abs(last[1] - box[1]) <= lineTolerance && Math.abs(last[3] - box[3]) <= lineTolerance;
+		const smallGap = box[0] - last[2] <= gapTolerance;
 
-const PDFViewer = ({ file, activePage, activeHighlightText, highlightTrigger }) => {
-  const [numPages, setNumPages] = useState(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
-  const [loading, setLoading] = useState(true);
-  const containerRef = useRef(null);
+		if (sameLine && smallGap) {
+			last[0] = Math.min(last[0], box[0]);
+			last[1] = Math.min(last[1], box[1]);
+			last[2] = Math.max(last[2], box[2]);
+			last[3] = Math.max(last[3], box[3]);
+			return;
+		}
 
-  // Generate PDF URL from document ID or use file object directly
-  const pdfSource = file.documentId 
-    ? `http://localhost:8000/upload/documents/${file.documentId}/file`
-    : file;
+		merged.push([...box]);
+	});
 
-  const onDocumentLoadSuccess = ({ numPages }) => {
-    setNumPages(numPages);
-    setLoading(false);
-  };
+	return merged;
+};
 
-  const onDocumentLoadError = (error) => {
-    console.error('Error loading PDF:', error);
-    setLoading(false);
-  };
+const HighlightLayer = ({ boxes }) => {
+	if (!boxes.length) return null;
 
-  useEffect(() => {
-    if (activePage && Number.isFinite(Number(activePage))) {
-      setPageNumber(Math.max(1, Number(activePage)));
-    }
-  }, [activePage, highlightTrigger]);
+	return (
+		<div className="absolute inset-0 pointer-events-none z-20">
+			{boxes.map((box, index) => {
+				const [x1, y1, x2, y2] = box;
 
-  const applyTextHighlight = () => {
-    const root = containerRef.current;
-    if (!root) return;
+				return (
+					<div
+						key={`${index}-${x1}-${y1}`}
+						style={{
+							position: 'absolute',
+							left: x1,
+							top: y1,
+							width: x2 - x1,
+							height: y2 - y1,
+							backgroundColor: 'rgba(255, 220, 0, 0.45)',
+							borderRadius: 2,
+						}}
+					/>
+				);
+			})}
+		</div>
+	);
+};
 
-    const textLayer = root.querySelector('.react-pdf__Page__textContent');
-    if (!textLayer) return;
+const PDFViewer = ({ file, activePage, activeBoxes, highlightTrigger }) => {
+	const [numPages, setNumPages] = useState(null);
+	const [pageNumber, setPageNumber] = useState(1);
+	const [scale, setScale] = useState(1.0);
+	const [loading, setLoading] = useState(true);
+	const [pdfPageSize, setPdfPageSize] = useState({ width: 0, height: 0 });
+	const [renderedPageSize, setRenderedPageSize] = useState({ width: 0, height: 0 });
 
-    const spans = Array.from(textLayer.querySelectorAll('span'));
+	const containerRef = useRef(null);
+	const pageWrapperRef = useRef(null);
 
-    const queryText = normalizeHighlightQuery(activeHighlightText || '');
-    spans.forEach((span) => {
-      const originalText = span.dataset.originalText ?? span.textContent ?? '';
-      span.dataset.originalText = originalText;
-      span.innerHTML = originalText;
-    });
+	const pdfSource = file.documentId
+		? `http://localhost:8000/upload/documents/${file.documentId}/file`
+		: file;
 
-    if (!queryText) return;
+	useEffect(() => {
+		if (activePage && Number.isFinite(Number(activePage))) {
+			setPageNumber(Math.max(1, Number(activePage)));
+		}
+	}, [activePage, highlightTrigger]);
 
-    const normalizedQuery = queryText.replace(/\s+/g, ' ').trim();
-    if (!normalizedQuery) return;
-    const queryRegex = new RegExp(escapeRegExp(normalizedQuery), 'i');
+	useEffect(() => {
+		if (numPages && pageNumber > numPages) {
+			setPageNumber(numPages);
+		}
+	}, [numPages, pageNumber]);
 
-    let firstHighlighted = null;
-    spans.forEach((span) => {
-      const text = span.dataset.originalText ?? span.textContent ?? '';
-      if (!text || !text.trim()) return;
+	useEffect(() => {
+		const count = Array.isArray(activeBoxes) ? activeBoxes.length : 0;
+		console.log('HIGHLIGHT BOXES:', count);
+	}, [activeBoxes, highlightTrigger]);
 
-      if (queryRegex.test(text)) {
-        span.innerHTML = highlightText(text, normalizedQuery, USE_UNDERLINE_HIGHLIGHT);
-        if (!firstHighlighted) {
-          firstHighlighted = span;
-        }
-      }
-    });
+	const updateRenderedPageSize = () => {
+		const wrapper = pageWrapperRef.current;
+		if (!wrapper) return;
 
-    // Fallback for PDF text-layer fragmentation:
-    // if full phrase isn't found inside any one span, highlight key words instead.
-    if (!firstHighlighted) {
-      const tokens = Array.from(
-        new Set(
-          (normalizedQuery.match(/[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*/g) || [])
-            .map((t) => t.trim())
-            .filter((t) => t.length >= 4)
-            .filter((t) => !STOPWORDS.has(t.toLowerCase()))
-        )
-      ).slice(0, 8);
+		const canvas = wrapper.querySelector('canvas');
+		if (!canvas) return;
 
-      spans.forEach((span) => {
-        const text = span.dataset.originalText ?? span.textContent ?? '';
-        if (!text || !text.trim()) return;
+		const rect = canvas.getBoundingClientRect();
+		if (rect.width <= 0 || rect.height <= 0) return;
 
-        const hasAnyToken = tokens.some((token) => new RegExp(`\\b${escapeRegExp(token)}\\b`, 'i').test(text));
-        if (!hasAnyToken) return;
+		setRenderedPageSize({
+			width: rect.width,
+			height: rect.height,
+		});
+	};
 
-        span.innerHTML = highlightByTokens(text, tokens, USE_UNDERLINE_HIGHLIGHT);
-        if (!firstHighlighted) {
-          firstHighlighted = span;
-        }
-      });
-    }
+	useEffect(() => {
+		if (typeof ResizeObserver === 'undefined') return undefined;
 
-    if (firstHighlighted) {
-      firstHighlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  };
+		const wrapper = pageWrapperRef.current;
+		if (!wrapper) return undefined;
 
-  useEffect(() => {
-    const timer = setTimeout(() => applyTextHighlight(), 120);
-    return () => clearTimeout(timer);
-  }, [pageNumber, activeHighlightText, highlightTrigger, scale]);
+		const observer = new ResizeObserver(() => {
+			updateRenderedPageSize();
+		});
 
-  const goToPrevPage = () => setPageNumber(prev => Math.max(prev - 1, 1));
-  const goToNextPage = () => setPageNumber(prev => Math.min(prev + 1, numPages));
-  const zoomIn = () => setScale(prev => Math.min(prev + 0.2, 2.5));
-  const zoomOut = () => setScale(prev => Math.max(prev - 0.2, 0.5));
+		observer.observe(wrapper);
+		return () => observer.disconnect();
+	}, [pageNumber, scale]);
 
-  return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={goToPrevPage}
-            disabled={pageNumber <= 1}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          
-          <div className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-medium">
-            <span className="text-gray-700">{pageNumber}</span>
-            <span className="text-gray-400"> / {numPages || '...'}</span>
-          </div>
-          
-          <button
-            onClick={goToNextPage}
-            disabled={pageNumber >= numPages}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+	const scaledBoxes = useMemo(() => {
+		const boxes = normalizeBoxes(activeBoxes);
+		if (!boxes.length) return [];
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={zoomOut}
-            disabled={scale <= 0.5}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ZoomOut className="w-5 h-5" />
-          </button>
-          
-          <div className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-medium text-gray-700 min-w-[4rem] text-center">
-            {Math.round(scale * 100)}%
-          </div>
-          
-          <button
-            onClick={zoomIn}
-            disabled={scale >= 2.5}
-            className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <ZoomIn className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+		const { width: originalWidth, height: originalHeight } = pdfPageSize;
+		const { width: renderedWidth, height: renderedHeight } = renderedPageSize;
+		if (!originalWidth || !originalHeight || !renderedWidth || !renderedHeight) {
+			return [];
+		}
 
-      {/* PDF Content */}
-      <div className="flex-1 overflow-auto p-6" ref={containerRef}>
-        <div className="flex justify-center">
-          {loading && (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
-            </div>
-          )}
-          
-          <Document
-            file={pdfSource}
-            onLoadSuccess={onDocumentLoadSuccess}
-            onLoadError={onDocumentLoadError}
-            loading=""
-            className="shadow-lg"
-          >
-            <Page
-              pageNumber={pageNumber}
-              scale={scale}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              onRenderSuccess={applyTextHighlight}
-              className="bg-white shadow-xl rounded-lg overflow-hidden"
-            />
-          </Document>
-        </div>
-      </div>
-    </div>
-  );
+		const scaleX = renderedWidth / originalWidth;
+		const scaleY = renderedHeight / originalHeight;
+
+		const scaled = boxes.map(([x1, y1, x2, y2]) => [
+			x1 * scaleX,
+			y1 * scaleY,
+			x2 * scaleX,
+			y2 * scaleY,
+		]);
+
+		return mergeAdjacentBoxes(scaled);
+	}, [activeBoxes, pdfPageSize, renderedPageSize]);
+
+	useEffect(() => {
+		if (!scaledBoxes.length) return;
+
+		const container = containerRef.current;
+		const wrapper = pageWrapperRef.current;
+		if (!container || !wrapper) return;
+
+		const [, y1] = scaledBoxes[0];
+		const containerRect = container.getBoundingClientRect();
+		const wrapperRect = wrapper.getBoundingClientRect();
+
+		const targetTop = wrapperRect.top - containerRect.top + container.scrollTop + y1;
+		const targetScrollTop = Math.max(0, targetTop - container.clientHeight / 2);
+		container.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+	}, [scaledBoxes, highlightTrigger, pageNumber]);
+
+	const onDocumentLoadSuccess = ({ numPages: pages }) => {
+		setNumPages(pages);
+		setLoading(false);
+	};
+
+	const onDocumentLoadError = (error) => {
+		console.error('Error loading PDF:', error);
+		setLoading(false);
+	};
+
+	const goToPrevPage = () => setPageNumber((prev) => Math.max(prev - 1, 1));
+	const goToNextPage = () => setPageNumber((prev) => Math.min(prev + 1, numPages || prev + 1));
+	const zoomIn = () => setScale((prev) => Math.min(prev + 0.2, 2.5));
+	const zoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.5));
+
+	return (
+		<div className="flex flex-col h-full bg-gray-50">
+			<div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm">
+				<div className="flex items-center space-x-2">
+					<button
+						onClick={goToPrevPage}
+						disabled={pageNumber <= 1}
+						className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+					>
+						<ChevronLeft className="w-5 h-5" />
+					</button>
+
+					<div className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-medium">
+						<span className="text-gray-700">{pageNumber}</span>
+						<span className="text-gray-400"> / {numPages || '...'}</span>
+					</div>
+
+					<button
+						onClick={goToNextPage}
+						disabled={pageNumber >= (numPages || 0)}
+						className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+					>
+						<ChevronRight className="w-5 h-5" />
+					</button>
+				</div>
+
+				<div className="flex items-center space-x-2">
+					<button
+						onClick={zoomOut}
+						disabled={scale <= 0.5}
+						className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+					>
+						<ZoomOut className="w-5 h-5" />
+					</button>
+
+					<div className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-medium text-gray-700 min-w-[4rem] text-center">
+						{Math.round(scale * 100)}%
+					</div>
+
+					<button
+						onClick={zoomIn}
+						disabled={scale >= 2.5}
+						className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition"
+					>
+						<ZoomIn className="w-5 h-5" />
+					</button>
+				</div>
+			</div>
+
+			<div className="flex-1 overflow-auto p-6" ref={containerRef}>
+				<div className="flex justify-center">
+					{loading && (
+						<div className="flex items-center justify-center py-20">
+							<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500" />
+						</div>
+					)}
+
+					<Document
+						file={pdfSource}
+						onLoadSuccess={onDocumentLoadSuccess}
+						onLoadError={onDocumentLoadError}
+						loading=""
+						className="shadow-lg"
+					>
+						<div className="relative inline-block" ref={pageWrapperRef}>
+							<Page
+								pageNumber={pageNumber}
+								scale={scale}
+								renderTextLayer={true}
+								renderAnnotationLayer={true}
+								onLoadSuccess={(page) => {
+									try {
+										const viewport = page.getViewport({ scale: 1 });
+										setPdfPageSize({
+											width: viewport.width || 0,
+											height: viewport.height || 0,
+										});
+									} catch {
+										setPdfPageSize({ width: 0, height: 0 });
+									}
+								}}
+								onRenderSuccess={() => {
+									updateRenderedPageSize();
+								}}
+								className="bg-white shadow-xl rounded-lg overflow-hidden"
+							/>
+
+							<HighlightLayer boxes={scaledBoxes} />
+						</div>
+					</Document>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default PDFViewer;

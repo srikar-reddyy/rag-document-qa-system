@@ -1,3 +1,11 @@
 {
-  "documents": []
+  "documents": [
+    {
+      "document_id": "f1d21b1b-665a-4903-8a32-e0f79af4bb52",
+      "file_name": "Rich Dad Poor Dad by Robert T. Kiyosaki.pdf",
+      "file_path": "/Users/rishithreddy/Documents/RAG-Multidocument/backend/data/uploads/f1d21b1b-665a-4903-8a32-e0f79af4bb52.pdf",
+      "file_size": 13494986,
+      "uploaded_at": "2026-04-05T12:56:32.118563"
+    }
+  ]
 }

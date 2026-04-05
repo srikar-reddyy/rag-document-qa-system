@@ -14,7 +14,8 @@ class HighlightItem(BaseModel):
     score: float = Field(default=0.0, description="Similarity/confidence score")
     char_start: Optional[int] = Field(default=None, description="Optional start char offset")
     char_end: Optional[int] = Field(default=None, description="Optional end char offset")
-    bbox: Optional[list[float]] = Field(default=None, description="Optional [x, y, w, h] box")
+    boxes: list[list[float]] = Field(default_factory=list, description="Word-level [x1, y1, x2, y2] boxes")
+    bbox: Optional[list[float]] = Field(default=None, description="Optional backward-compatible primary box")
 
 
 class SourceItem(BaseModel):

@@ -7,7 +7,7 @@ from document content, enabling accurate attribution in RAG responses.
 """
 
 from pypdf import PdfReader
-from typing import List, Dict, Set
+from typing import List, Dict, Set, Any
 import logging
 import re
 from pathlib import Path
@@ -16,6 +16,7 @@ import base64
 import mimetypes
 import os
 import io
+import json
 
 from PIL import Image, ImageOps
 import requests
@@ -496,6 +497,69 @@ def _clean_ocr_text(text: str) -> str:
     cleaned = (text or "").replace("\u200b", " ")
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
+
+
+def _extract_pdf_words_with_bboxes(pdf_path: str) -> List[Dict[str, Any]]:
+    """
+    Extract per-page words from PDF with deterministic char offsets and bboxes.
+
+    The returned page text is reconstructed directly from extracted words so
+    char offsets map 1:1 to word indices and bboxes.
+    """
+    if fitz is None:
+        return []
+
+    pages: List[Dict[str, Any]] = []
+
+    try:
+        with fitz.open(pdf_path) as doc:
+            for page in doc:
+                raw_words = page.get_text("words", sort=True) or []
+
+                page_words: List[Dict[str, Any]] = []
+                text_parts: List[str] = []
+                cursor = 0
+                last_line_key = None
+
+                for item in raw_words:
+                    if len(item) < 8:
+                        continue
+
+                    x0, y0, x1, y1, token, block_no, line_no, _word_no = item[:8]
+                    word_text = str(token or "").strip()
+                    if not word_text:
+                        continue
+
+                    line_key = (int(block_no), int(line_no))
+                    if last_line_key is not None:
+                        separator = "\n" if line_key != last_line_key else " "
+                        text_parts.append(separator)
+                        cursor += len(separator)
+
+                    char_start = cursor
+                    text_parts.append(word_text)
+                    cursor += len(word_text)
+                    char_end = cursor
+
+                    page_words.append({
+                        "text": word_text,
+                        "char_start": char_start,
+                        "char_end": char_end,
+                        "bbox": [float(x0), float(y0), float(x1), float(y1)],
+                    })
+                    last_line_key = line_key
+
+                pages.append({
+                    "text": "".join(text_parts),
+                    "words": page_words,
+                    "width": float(page.rect.width),
+                    "height": float(page.rect.height),
+                })
+    except Exception as exc:
+        logger.warning(f"Word-level PDF extraction failed: {str(exc)}")
+        return []
+
+    return pages
 
 
 def _extract_detected_elements(vision_text: str) -> str:
@@ -985,6 +1049,8 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
         pdf_author = pdf_metadata.get('/Author') or pdf_metadata.get('/author') or "Unknown"
         pdf_title = pdf_metadata.get('/Title') or pdf_metadata.get('/title') or file_name
 
+        page_word_data = _extract_pdf_words_with_bboxes(file_path)
+
         image_output_dir = Path(__file__).parent.parent / "temp" / "pdf_images" / Path(file_name).stem
         embedded_images = extract_embedded_images(file_path, str(image_output_dir))
         print(f"Extracted {len(embedded_images)} embedded images")
@@ -1015,31 +1081,60 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
 
         page_texts: List[str] = []
         page_ocr_used: List[bool] = []
+        page_words_per_page: List[List[Dict[str, Any]]] = []
+        page_dimensions: List[Dict[str, float]] = []
+        page_text_sources: List[str] = []
+        page_vision_summaries: List[str] = []
 
         # Per-page extraction with OCR fallback (never silently skip pages)
         for page_num, page in enumerate(reader.pages, start=1):
-            extracted_text = (page.extract_text() or "").strip()
+            fitz_payload = page_word_data[page_num - 1] if len(page_word_data) >= page_num else {}
+            fitz_text = ((fitz_payload or {}).get("text") or "").strip()
+            page_words = (fitz_payload or {}).get("words") or []
+
+            extracted_text = fitz_text
             used_ocr = False
+            text_source = "fitz_words" if fitz_text else "pypdf"
 
             if not extracted_text:
-                logger.warning(f"{file_name} | Page {page_num}: empty PyPDF extraction, attempting OCR fallback")
-                try:
-                    extracted_text = (run_ocr_single_page_text(file_path, page_num=page_num) or "").strip()
-                    used_ocr = True
-                    if not extracted_text:
-                        logger.warning(f"{file_name} | Page {page_num}: OCR fallback returned empty text")
-                except Exception as ocr_error:
-                    logger.warning(f"{file_name} | Page {page_num}: OCR fallback failed: {str(ocr_error)}")
+                extracted_text = (page.extract_text() or "").strip()
+                if not extracted_text:
+                    logger.warning(f"{file_name} | Page {page_num}: empty text extraction, attempting OCR fallback")
+                    try:
+                        extracted_text = (run_ocr_single_page_text(file_path, page_num=page_num) or "").strip()
+                        used_ocr = True
+                        text_source = "ocr" if extracted_text else "none"
+                        if not extracted_text:
+                            logger.warning(f"{file_name} | Page {page_num}: OCR fallback returned empty text")
+                    except Exception as ocr_error:
+                        logger.warning(f"{file_name} | Page {page_num}: OCR fallback failed: {str(ocr_error)}")
+                        text_source = "none"
+                else:
+                    text_source = "pypdf"
 
             vision_summary = describe_pdf_page_with_vision(file_path, page_num)
-            if vision_summary:
+            if vision_summary and not page_words:
                 extracted_text = (
                     f"{extracted_text}\n\n"
                     f"PAGE VISUAL ANALYSIS:\n{vision_summary}"
                 ).strip()
 
+            page_width = float((fitz_payload or {}).get("width") or 0.0)
+            page_height = float((fitz_payload or {}).get("height") or 0.0)
+            if page_width <= 0 or page_height <= 0:
+                try:
+                    page_width = float(page.mediabox.width)
+                    page_height = float(page.mediabox.height)
+                except Exception:
+                    page_width = 0.0
+                    page_height = 0.0
+
             page_texts.append(extracted_text)
             page_ocr_used.append(used_ocr)
+            page_words_per_page.append(page_words)
+            page_dimensions.append({"width": page_width, "height": page_height})
+            page_text_sources.append(text_source)
+            page_vision_summaries.append(vision_summary)
 
         full_text = "\n".join([text for text in page_texts if text and text.strip()])
         if not full_text.strip():
@@ -1062,19 +1157,6 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
             page_images_for_chunk = page_to_images.get(page_num, [])
             page_image_paths = [item.get("image_path") for item in page_images_for_chunk if item.get("image_path")]
             page_image_types = sorted({item.get("type") for item in page_images_for_chunk if item.get("type")})
-
-            if page_num == 1 and text.strip():
-                # Inject primary entity into page 1 text for embedding context
-                # This ensures the embedding captures the entity association
-                entity_header = f"SUBJECT: {primary_entity}\n"
-                
-                metadata_lines = [entity_header]
-                if pdf_title and pdf_title != file_name:
-                    metadata_lines.append(f"DOCUMENT: {pdf_title}")
-                if pdf_author and pdf_author != "Unknown":
-                    metadata_lines.append(f"SOURCE: {pdf_author}")
-
-                text = "\n".join(metadata_lines) + "\n\n" + text
 
             documents.append({
                 "text": text,
@@ -1099,6 +1181,12 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
                     "document_images": document_images,
                     "source_pdf_path": file_path,
                     "text_length": len(original_text.strip()),
+                    "page_text_source": page_text_sources[page_num - 1],
+                    "page_words_json": json.dumps(page_words_per_page[page_num - 1], ensure_ascii=False),
+                    "page_words_count": len(page_words_per_page[page_num - 1]),
+                    "bbox_page_width": float(page_dimensions[page_num - 1]["width"]),
+                    "bbox_page_height": float(page_dimensions[page_num - 1]["height"]),
+                    "vision_summary": page_vision_summaries[page_num - 1],
                     # Entity extraction results
                     "primary_entity": primary_entity,
                     "entities": entity_data["entities"],  # {persons, organizations, roles}
@@ -1110,6 +1198,7 @@ def load_pdf(file_path: str, file_name: str) -> List[Dict[str, any]]:
 
             logger.info(
                 f"Page {page_num} → length: {len(original_text.strip())} → ocr_used: {page_ocr_used[page_num - 1]} "
+                f"→ words: {len(page_words_per_page[page_num - 1])} → source: {page_text_sources[page_num - 1]} "
                 f"→ has_visual_context: {len(page_images_for_chunk) > 0}"
             )
 

@@ -6,14 +6,16 @@ Orchestrates the complete RAG workflow
 from typing import Dict, List
 import logging
 import re
+import json
+import unicodedata
 
 from .loader import load_document
 from .chunker import chunk_documents, Document
-from .embedder import embed_texts
+from .embedder import embed_texts, get_embedding_model
 from .vectordb import add_documents, get_document_metadata, get_document_chunks, get_chunks_by_page
 from .retriever import retrieve, extract_sources, detect_page_query
-from .generator import generate_answer, call_llm_api
-from .utils import clean_candidate_lines, score_sentence_relevance, split_sentences
+from .generator import generate_answer
+from .utils import cosine_similarity, is_noisy_line, score_sentence_relevance, split_sentences
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +62,234 @@ def _normalize_for_dedupe(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
+def normalize(text: str) -> str:
+    return " ".join(str(text or "").lower().split())
+
+
+def validate_span(chunk_text: str, span: str) -> bool:
+    normalized_span = normalize(span)
+    if not normalized_span:
+        return False
+    return normalized_span in normalize(chunk_text)
+
+
+def _parse_words(value) -> List[Dict]:
+    if not value:
+        return []
+
+    try:
+        entries = json.loads(value) if isinstance(value, str) else value
+    except Exception:
+        return []
+
+    if not isinstance(entries, list):
+        return []
+
+    words: List[Dict] = []
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+
+        bbox = item.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) < 4:
+            continue
+
+        try:
+            char_start = int(item.get("char_start"))
+            char_end = int(item.get("char_end"))
+            box = [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])]
+        except Exception:
+            continue
+
+        if char_end <= char_start:
+            continue
+
+        words.append({
+            "text": str(item.get("text") or ""),
+            "char_start": char_start,
+            "char_end": char_end,
+            "bbox": box,
+        })
+
+    words.sort(key=lambda w: int(w.get("char_start", 0)))
+    return words
+
+
+def _resolve_chunk_id(chunk: Dict) -> str:
+    metadata = chunk.get("metadata", {}) or {}
+    chunk_id = chunk.get("chunk_id") or metadata.get("chunk_id")
+    if chunk_id:
+        return str(chunk_id)
+
+    doc_name = (
+        chunk.get("doc_name")
+        or metadata.get("doc_name")
+        or metadata.get("document_name")
+        or metadata.get("file_name")
+        or "Unknown"
+    )
+    page = _to_int(chunk.get("page", metadata.get("page", metadata.get("page_number"))), 1) or 1
+    start = _to_int(chunk.get("char_start", metadata.get("char_start")), 0) or 0
+    end = _to_int(chunk.get("char_end", metadata.get("char_end")), 0) or 0
+    return f"{doc_name}::p{page}::r{start}-{end}"
+
+
+def _build_chunk_index(chunks: List[Dict]) -> Dict[str, Dict]:
+    index: Dict[str, Dict] = {}
+    for chunk in chunks or []:
+        metadata = chunk.get("metadata", {}) or {}
+        chunk_id = _resolve_chunk_id(chunk)
+        doc_name = (
+            chunk.get("doc_name")
+            or metadata.get("doc_name")
+            or metadata.get("document_name")
+            or metadata.get("file_name")
+            or "Unknown"
+        )
+        page = _to_int(chunk.get("page", metadata.get("page", metadata.get("page_number"))), 1) or 1
+        text = (chunk.get("text") or chunk.get("page_content") or "").strip()
+        words = chunk.get("words") or _parse_words(metadata.get("words_json"))
+
+        index[chunk_id] = {
+            "chunk_id": chunk_id,
+            "doc_name": doc_name,
+            "page": page,
+            "text": text,
+            "words": words,
+            "score": float(chunk.get("score", chunk.get("rerank_score", chunk.get("relevance_score", 0.0)))),
+        }
+
+    return index
+
+
+def _normalize_char(ch: str) -> str:
+    c = ch.lower()
+    if c in {"’", "`", "´", "ʻ", "ʼ"}:
+        return "'"
+    if c in {"“", "”"}:
+        return '"'
+    if c in {"‐", "‑", "‒", "–", "—"}:
+        return "-"
+    return c
+
+
+def _normalize_with_map(text: str, keep_spaces: bool = True) -> tuple[str, List[int]]:
+    if text is None:
+        return "", []
+
+    source = str(text)
+    normalized: List[str] = []
+    index_map: List[int] = []
+
+    for idx, ch in enumerate(source):
+        if ch == "\u00ad":
+            continue
+
+        expanded = unicodedata.normalize("NFKC", ch)
+        for unit in expanded:
+            unit = _normalize_char(unit)
+
+            if unit.isspace():
+                if not keep_spaces:
+                    continue
+                if not normalized or normalized[-1] == " ":
+                    continue
+                normalized.append(" ")
+                index_map.append(idx)
+                continue
+
+            # Drop line-break hyphenation marker ("word-\nnext").
+            if unit == "-" and idx + 1 < len(source) and source[idx + 1].isspace():
+                continue
+
+            normalized.append(unit)
+            index_map.append(idx)
+
+    while normalized and normalized[0] == " ":
+        normalized.pop(0)
+        index_map.pop(0)
+
+    while normalized and normalized[-1] == " ":
+        normalized.pop()
+        index_map.pop()
+
+    return "".join(normalized), index_map
+
+
+def _map_back(index_map: List[int], start: int, end: int, source_len: int) -> tuple[int | None, int | None]:
+    if not index_map:
+        return None, None
+
+    start = max(0, min(start, len(index_map) - 1))
+    end = max(start + 1, min(end, len(index_map)))
+
+    orig_start = index_map[start]
+    orig_end = min(source_len, index_map[end - 1] + 1)
+    return orig_start, orig_end
+
+
+def _map_span_to_char_range(chunk_text: str, answer_span: str) -> tuple[int | None, int | None]:
+    if not chunk_text or not answer_span:
+        return None, None
+
+    normalized_chunk, index_map = _normalize_with_map(chunk_text, keep_spaces=True)
+    normalized_span, _ = _normalize_with_map(answer_span, keep_spaces=True)
+
+    if normalized_span:
+        start = normalized_chunk.find(normalized_span)
+        if start != -1:
+            return _map_back(index_map, start, start + len(normalized_span), len(chunk_text))
+
+    compact_chunk, compact_map = _normalize_with_map(chunk_text, keep_spaces=False)
+    compact_span, _ = _normalize_with_map(answer_span, keep_spaces=False)
+
+    if compact_span:
+        start = compact_chunk.find(compact_span)
+        if start != -1:
+            return _map_back(compact_map, start, start + len(compact_span), len(chunk_text))
+
+    return None, None
+
+
+def _select_words_for_span(words: List[Dict], start: int, end: int) -> List[Dict]:
+    strict = []
+    for word in words or []:
+        ws = _to_int(word.get("char_start"), -1)
+        we = _to_int(word.get("char_end"), -1)
+        if ws >= start and we <= end:
+            strict.append(word)
+
+    return strict
+
+
+def _extract_boxes(words: List[Dict]) -> List[List[float]]:
+    boxes: List[List[float]] = []
+    seen = set()
+    for word in words or []:
+        bbox = word.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) < 4:
+            continue
+
+        try:
+            x1 = float(bbox[0])
+            y1 = float(bbox[1])
+            x2 = float(bbox[2])
+            y2 = float(bbox[3])
+        except Exception:
+            continue
+
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        key = (round(x1, 3), round(y1, 3), round(x2, 3), round(y2, 3))
+        if key in seen:
+            continue
+        seen.add(key)
+        boxes.append([x1, y1, x2, y2])
+
+    return boxes
+
+
 def _is_query_about_experience(query: str) -> bool:
     q = (query or "").lower()
     return any(token in q for token in ["experience", "work", "intern", "job"])
@@ -73,6 +303,18 @@ def _section_boost(query: str, metadata: Dict) -> float:
     return 0.0
 
 
+def _build_embedding_input_text(chunk_text: str, metadata: Dict | None = None) -> str:
+    text = (chunk_text or "").strip()
+    if not text:
+        return ""
+
+    section_title = str((metadata or {}).get("section_title") or "").strip()
+    if section_title and section_title.lower() != "unknown":
+        return f"{section_title}\n{text}"
+
+    return text
+
+
 def _chunk_to_source(chunk: Dict, score: float | None = None) -> Dict:
     metadata = chunk.get("metadata", {}) or {}
     text = (chunk.get("text") or "").strip()
@@ -82,12 +324,15 @@ def _chunk_to_source(chunk: Dict, score: float | None = None) -> Dict:
     doc_name = chunk.get("doc_name") or metadata.get("doc_name") or metadata.get("document_name") or metadata.get("file_name") or "Unknown"
     page = _to_int(chunk.get("page", metadata.get("page", metadata.get("page_number"))), 1) or 1
     bbox = _parse_bbox(chunk.get("bbox", metadata.get("bbox")))
+    chunk_id = _resolve_chunk_id(chunk)
 
     return {
         "doc": doc_name,
         "file": doc_name,
         "page": page,
         "text": evidence_text,
+        "answer_span": evidence_text,
+        "chunk_id": chunk_id,
         "score": float(score if score is not None else chunk.get("score", chunk.get("rerank_score", chunk.get("relevance_score", 0.0)))),
         "query_similarity": float(chunk.get("rerank_score", chunk.get("score", 0.0))),
         "answer_similarity": 0.0,
@@ -106,41 +351,127 @@ def _fallback_sources_from_chunks(chunks: List[Dict], limit: int = 2) -> List[Di
     return [_chunk_to_source(chunk) for chunk in ranked[:max(1, limit)]]
 
 
+def build_sources_from_citations(citations: List[Dict], retrieved_chunks: List[Dict], max_sources: int = 5) -> List[Dict]:
+    if not citations or not retrieved_chunks:
+        print("\nSUMMARY")
+        print("Total citations:", len(citations or []))
+        print("Valid highlights:", 0)
+        print("Rejected:", len(citations or []))
+        return []
+
+    chunk_index = _build_chunk_index(retrieved_chunks)
+    if not chunk_index:
+        print("\nSUMMARY")
+        print("Total citations:", len(citations or []))
+        print("Valid highlights:", 0)
+        print("Rejected:", len(citations or []))
+        return []
+
+    sources: List[Dict] = []
+    seen = set()
+    valid_count = 0
+
+    for citation in citations:
+        chunk_id = str((citation or {}).get("chunk_id") or "").strip()
+        span = str((citation or {}).get("span") or "").strip()
+
+        if not chunk_id or not span:
+            continue
+
+        chunk = chunk_index.get(chunk_id)
+
+        print("\n==============================")
+        print("PROCESSING")
+        print("Chunk ID:", chunk_id)
+        print("Span:", span)
+        print("Chunk Preview:", (chunk or {}).get("text", "")[:150])
+
+        if chunk is None:
+            print("ERROR: chunk not found")
+            continue
+
+        is_valid = validate_span(chunk.get("text", ""), span)
+        print("VALID:", is_valid)
+
+        normalized_span = normalize(span)
+        if normalized_span:
+            for candidate in chunk_index.values():
+                candidate_chunk_id = str(candidate.get("chunk_id") or "")
+                if candidate_chunk_id == chunk_id:
+                    continue
+                if normalized_span in normalize(candidate.get("text", "")):
+                    print("ERROR: span found in MULTIPLE chunks")
+                    print("Other chunk:", candidate_chunk_id)
+
+        if not is_valid:
+            print("SKIPPED - span not in chunk")
+            continue
+
+        print("APPLYING HIGHLIGHT")
+
+        dedupe_key = (chunk_id, normalize(span))
+        if dedupe_key in seen:
+            continue
+
+        seen.add(dedupe_key)
+        sources.append({
+            "doc": chunk.get("doc_name") or "Unknown",
+            "file": chunk.get("doc_name") or "Unknown",
+            "page": int(chunk.get("page") or 1),
+            "text": span,
+            "answer_span": span,
+            "chunk_id": chunk_id,
+            "score": float(chunk.get("score", 0.0)),
+        })
+        valid_count += 1
+
+        if len(sources) >= max_sources:
+            break
+
+    print("\nSUMMARY")
+    print("Total citations:", len(citations))
+    print("Valid highlights:", valid_count)
+    print("Rejected:", len(citations) - valid_count)
+
+    return sources
+
+
 async def _extract_supporting_sentences(query: str, answer: str, chunk_text: str) -> List[str]:
     """
-    LLM extraction of supporting sentences for source attribution.
+    Deterministic extraction of supporting sentences from chunk text.
+    Returns verbatim chunk sentences ranked by semantic similarity to the answer.
     """
     if not chunk_text or not chunk_text.strip():
         return []
 
-    prompt = f"""
-Query: {query}
-Answer: {answer}
+    sentences = [sentence for sentence in _split_sentences(chunk_text) if sentence and sentence.strip()]
+    sentences = [sentence for sentence in sentences if not is_noisy_line(sentence)]
+    if not sentences:
+        return []
 
-From the text below, extract sentences that are likely relevant to the query and help justify the answer.
+    model = get_embedding_model()
+    answer_emb = model.encode(answer, convert_to_numpy=True)
+    sentence_embs = model.encode(sentences, convert_to_numpy=True)
 
-Rules:
-- Return only likely relevant sentences
-- No extra text
-- No headings
-- No unrelated lines
-- One sentence per line
+    sentence_scores = [
+        (
+            sentence,
+            cosine_similarity(answer_emb.tolist(), sentence_embs[idx].tolist()),
+        )
+        for idx, sentence in enumerate(sentences)
+    ]
 
-Text:
-{chunk_text}
-""".strip()
+    strong_matches = [(sentence, score) for sentence, score in sentence_scores if score >= 0.55]
+    ranked = sorted(
+        strong_matches if strong_matches else sentence_scores,
+        key=lambda item: item[1],
+        reverse=True,
+    )
 
-    try:
-        raw = await call_llm_api(prompt)
-        candidate_lines = [line.strip(" -•\t") for line in raw.splitlines() if line and line.strip()]
-        cleaned = clean_candidate_lines(candidate_lines)
-        if cleaned:
-            return cleaned
-    except Exception as e:
-        logger.warning(f"Supporting-sentence extraction failed, using deterministic fallback: {str(e)}")
+    if not strong_matches:
+        ranked = ranked[:3]
 
-    # Deterministic fallback: sentence split + cleanup
-    return clean_candidate_lines(split_sentences(chunk_text))
+    return [sentence for sentence, _ in ranked]
 
 
 async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max_sources: int = 5) -> List[Dict]:
@@ -161,6 +492,7 @@ async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max
             continue
 
         metadata = chunk.get("metadata", {}) or {}
+        chunk_id = _resolve_chunk_id(chunk)
         doc_name = chunk.get("doc_name") or metadata.get("doc_name") or metadata.get("document_name") or metadata.get("file_name") or "Unknown"
         page = _to_int(chunk.get("page", metadata.get("page", metadata.get("page_number"))), 1) or 1
         bbox = _parse_bbox(chunk.get("bbox", metadata.get("bbox")))
@@ -173,7 +505,7 @@ async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max
             query_sim, answer_sim, combined = score_sentence_relevance(query, answer, sentence)
 
             # Relevance filtering
-            if query_sim <= 0.3:
+            if query_sim <= 0.15 and answer_sim <= 0.45:
                 continue
 
             evidence.append({
@@ -181,6 +513,8 @@ async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max
                 "file": doc_name,
                 "page": page,
                 "text": sentence,
+                "answer_span": sentence,
+                "chunk_id": chunk_id,
                 "score": float(max(base_score, combined + _section_boost(query, metadata))),
                 "query_similarity": float(query_sim),
                 "answer_similarity": float(answer_sim),
@@ -200,7 +534,7 @@ async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max
     seen = set()
     for item in sorted(
         evidence,
-        key=lambda e: (e.get("score", 0.0), e.get("answer_similarity", 0.0), e.get("query_similarity", 0.0)),
+        key=lambda e: (e.get("answer_similarity", 0.0), e.get("score", 0.0), e.get("query_similarity", 0.0)),
         reverse=True,
     ):
         key = (item.get("doc", ""), item.get("page", 1), _normalize_for_dedupe(item.get("text", "")))
@@ -229,34 +563,98 @@ async def build_dynamic_sources(query: str, answer: str, chunks: List[Dict], max
     return deduped
 
 
-def extract_highlights_from_sources(sources: List[Dict], max_highlights: int = 8) -> List[Dict]:
+def extract_highlights_from_sources(sources: List[Dict], chunks: List[Dict] | None = None, max_highlights: int = 8) -> List[Dict]:
     """
-    Extract exact sentence-level evidence spans from retrieved chunks.
-
-    This is intentionally separate from answer generation.
+    Build bbox-based highlights from source spans and chunk word maps.
     """
     if not sources:
         return []
 
+    chunk_index = _build_chunk_index(chunks or [])
+
     highlights = []
+    valid_count = 0
     for source in sources:
-        span_text = (source.get("text") or "").strip()
+        span_text = (source.get("answer_span") or source.get("text") or "").strip()
         if not span_text:
             continue
 
-        page = _to_int(source.get("page"), 1) or 1
-        doc_name = source.get("doc") or source.get("file") or "Unknown"
+        source_chunk_id = source.get("chunk_id")
+        chunk_id = str(source_chunk_id).strip() if source_chunk_id is not None else ""
+        if not chunk_id:
+            print("\n==============================")
+            print("PROCESSING")
+            print("Chunk ID:", "")
+            print("Span:", span_text)
+            print("Chunk Preview:", "")
+            print("ERROR: chunk not found")
+            continue
+
+        chunk = chunk_index.get(chunk_id)
+        chunk_preview = (chunk or {}).get("text", "")[:150]
+
+        print("\n==============================")
+        print("PROCESSING")
+        print("Chunk ID:", chunk_id)
+        print("Span:", span_text)
+        print("Chunk Preview:", chunk_preview)
+
+        if chunk is None:
+            print("ERROR: chunk not found")
+            continue
+
+        is_valid = validate_span(chunk.get("text", ""), span_text)
+        print("VALID:", is_valid)
+
+        normalized_span = normalize(span_text)
+        if normalized_span:
+            for candidate in chunk_index.values():
+                candidate_chunk_id = str(candidate.get("chunk_id") or "")
+                if candidate_chunk_id == chunk_id:
+                    continue
+                if normalized_span in normalize(candidate.get("text", "")):
+                    print("ERROR: span found in MULTIPLE chunks")
+                    print("Other chunk:", candidate_chunk_id)
+
+        if not is_valid:
+            print("SKIPPED - span not in chunk")
+            continue
+
+        print("APPLYING HIGHLIGHT")
+
+        page = _to_int(chunk.get("page"), 1) or 1
+        doc_name = chunk.get("doc_name") or source.get("doc") or source.get("file") or "Unknown"
         score = float(source.get("score", 0.0))
-        bbox = _parse_bbox(source.get("bbox"))
+
+        orig_start = None
+        orig_end = None
+        selected_words = []
+        boxes = []
+
+        if chunk and chunk.get("text") and chunk.get("words"):
+            orig_start, orig_end = _map_span_to_char_range(chunk.get("text", ""), span_text)
+            if orig_start is not None and orig_end is not None:
+                selected_words = _select_words_for_span(chunk.get("words", []), orig_start, orig_end)
+                boxes = _extract_boxes(selected_words)
+
+        print("SPAN:", span_text)
+        print("CHAR RANGE:", orig_start, orig_end)
+        print("WORDS SELECTED:", len(selected_words))
+
+        if not boxes:
+            continue
+
+        valid_count += 1
 
         highlights.append({
             "doc_name": doc_name,
             "page": page,
             "text": span_text,
             "score": float(score),
-            "char_start": None,
-            "char_end": None,
-            "bbox": bbox,
+            "char_start": orig_start,
+            "char_end": orig_end,
+            "boxes": boxes,
+            "bbox": boxes[0] if boxes else None,
         })
 
     # Deduplicate and sort by score
@@ -271,7 +669,104 @@ def extract_highlights_from_sources(sources: List[Dict], max_highlights: int = 8
         if len(deduped) >= max_highlights:
             break
 
+    print("\nSUMMARY")
+    print("Total citations:", len(sources))
+    print("Valid highlights:", valid_count)
+    print("Rejected:", len(sources) - valid_count)
+
     return deduped
+
+
+def build_section_mode_highlights(section: str, chunks: List[Dict], max_highlights: int = 12) -> List[Dict]:
+    """
+    Build grouped page-level highlights for deterministic section-mode retrieval.
+    """
+    if not chunks:
+        return []
+
+    normalized_section = normalize(section)
+    grouped: Dict[tuple, Dict] = {}
+
+    for chunk in chunks:
+        if chunk.get("mode") != "section":
+            continue
+
+        metadata = chunk.get("metadata", {}) or {}
+        doc_name = (
+            chunk.get("doc_name")
+            or metadata.get("doc_name")
+            or metadata.get("document_name")
+            or metadata.get("file_name")
+            or "Unknown"
+        )
+        page = _to_int(chunk.get("page", metadata.get("page", metadata.get("page_number"))), 1) or 1
+        key = (str(doc_name), int(page))
+
+        group = grouped.setdefault(
+            key,
+            {
+                "doc_name": str(doc_name),
+                "page": int(page),
+                "texts": [],
+                "chunk_ids": [],
+                "boxes": [],
+                "score": 0.0,
+            },
+        )
+
+        text = (chunk.get("text") or "").strip()
+        if text:
+            group["texts"].append(text)
+
+        chunk_id = str(chunk.get("chunk_id") or metadata.get("chunk_id") or "").strip()
+        if chunk_id and chunk_id not in group["chunk_ids"]:
+            group["chunk_ids"].append(chunk_id)
+
+        words = chunk.get("words") or _parse_words(metadata.get("words_json"))
+        group["boxes"].extend(_extract_boxes(words))
+
+        score = float(chunk.get("score", chunk.get("rerank_score", chunk.get("relevance_score", 1.0))))
+        if score > group["score"]:
+            group["score"] = score
+
+    highlights = []
+    for item in grouped.values():
+        # Deduplicate merged boxes per page while preserving order.
+        deduped_boxes = []
+        seen_boxes = set()
+        for box in item["boxes"]:
+            key = (round(box[0], 3), round(box[1], 3), round(box[2], 3), round(box[3], 3))
+            if key in seen_boxes:
+                continue
+            seen_boxes.add(key)
+            deduped_boxes.append(box)
+
+        deduped_texts = []
+        seen_texts = set()
+        for text in item["texts"]:
+            marker = normalize(text)
+            if not marker or marker in seen_texts:
+                continue
+            seen_texts.add(marker)
+            deduped_texts.append(text)
+
+        merged_text = "\n\n".join(deduped_texts).strip()
+        highlights.append(
+            {
+                "mode": "section",
+                "section": normalized_section,
+                "doc_name": item["doc_name"],
+                "page": item["page"],
+                "text": merged_text,
+                "score": float(item["score"]),
+                "chunk_ids": list(item["chunk_ids"]),
+                "boxes": deduped_boxes,
+                "bbox": deduped_boxes[0] if deduped_boxes else None,
+            }
+        )
+
+    highlights.sort(key=lambda h: (h.get("score", 0.0), h.get("page", 1)), reverse=True)
+    return highlights[:max_highlights]
 
 
 def _is_page_count_query(question: str) -> bool:
@@ -864,6 +1359,10 @@ async def process_document(file_path: str, file_name: str, document_id: str = No
         
         # Step 3: Extract data for embeddings and storage
         texts = [chunk.page_content for chunk in chunks]
+        embedding_texts = [
+            _build_embedding_input_text(chunk.page_content, chunk.metadata)
+            for chunk in chunks
+        ]
         metadatas = [chunk.metadata for chunk in chunks]
 
         print("=== FINAL CHECK BEFORE EMBEDDING ===")
@@ -871,7 +1370,7 @@ async def process_document(file_path: str, file_name: str, document_id: str = No
             print(c.metadata.get("page"), c.metadata.get("image_paths"))
         
         logger.info("Generating embeddings...")
-        embeddings = embed_texts(texts)
+        embeddings = embed_texts(embedding_texts)
         logger.info(f"Generated {len(embeddings)} embeddings")
         
         # Step 4: Store in ChromaDB
@@ -972,13 +1471,11 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
                 }
 
             result = await generate_answer(question, retrieved_chunks)
-            answer = (result.get("answer") or "").strip()
-            dynamic_sources = await build_dynamic_sources(question, answer, retrieved_chunks, max_sources=max(3, min(5, top_k)))
-            if not dynamic_sources:
-                dynamic_sources = _fallback_sources_from_chunks(retrieved_chunks, limit=2)
+            citations = result.get("citations") or []
+            strict_sources = build_sources_from_citations(citations, retrieved_chunks, max_sources=max(3, min(5, top_k)))
 
-            result["sources"] = dynamic_sources
-            result["highlights"] = extract_highlights_from_sources(dynamic_sources)
+            result["sources"] = strict_sources
+            result["highlights"] = extract_highlights_from_sources(strict_sources, retrieved_chunks)
             result["success"] = True
             return result
 
@@ -999,13 +1496,11 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
                 }
 
             result = await generate_answer(question, retrieved_chunks)
-            answer = (result.get("answer") or "").strip()
-            dynamic_sources = await build_dynamic_sources(question, answer, retrieved_chunks, max_sources=max(3, min(5, top_k)))
-            if not dynamic_sources:
-                dynamic_sources = _fallback_sources_from_chunks(retrieved_chunks, limit=2)
+            citations = result.get("citations") or []
+            strict_sources = build_sources_from_citations(citations, retrieved_chunks, max_sources=max(3, min(5, top_k)))
 
-            result["sources"] = dynamic_sources
-            result["highlights"] = extract_highlights_from_sources(dynamic_sources)
+            result["sources"] = strict_sources
+            result["highlights"] = extract_highlights_from_sources(strict_sources, retrieved_chunks)
             result["success"] = True
             return result
 
@@ -1038,23 +1533,12 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
         
         # Step 3: Generate answer from reranked chunks
         result = await generate_answer(question, retrieved_chunks)
-        answer = (result.get("answer") or "").strip()
 
-        # Step 4-9: Dynamic evidence extraction and filtering
-        dynamic_sources = await build_dynamic_sources(question, answer, retrieved_chunks, max_sources=max(3, min(5, top_k)))
+        citations = result.get("citations") or []
+        strict_sources = build_sources_from_citations(citations, retrieved_chunks, max_sources=max(3, min(5, top_k)))
 
-        # Step 10: Safety fallback if no strong evidence is found
-        if not dynamic_sources:
-            fallback_sources = _fallback_sources_from_chunks(retrieved_chunks, limit=2)
-            return {
-                "success": True,
-                "answer": answer or "Unable to generate a grounded answer.",
-                "sources": fallback_sources,
-                "highlights": extract_highlights_from_sources(fallback_sources),
-            }
-
-        result["sources"] = dynamic_sources
-        result["highlights"] = extract_highlights_from_sources(dynamic_sources)
+        result["sources"] = strict_sources
+        result["highlights"] = extract_highlights_from_sources(strict_sources, retrieved_chunks)
         result["success"] = True
         
         logger.info("RAG query completed successfully")
@@ -1074,14 +1558,14 @@ async def rag_query(question: str, top_k: int = 5, selected_document_ids: List[s
                     "success": True,
                     "answer": "The model took too long while preparing a full-document summary. Please try a more specific summary request such as chapter-wise summary, summary of the first half, or summary of a specific topic.",
                     "sources": sources,
-                    "highlights": extract_highlights_from_sources(sources)
+                    "highlights": extract_highlights_from_sources(sources, retrieved_chunks)
                 }
 
             return {
                 "success": True,
                 "answer": "The model took too long to generate a grounded answer. Please try a more specific question.",
                 "sources": sources,
-                "highlights": extract_highlights_from_sources(sources)
+                "highlights": extract_highlights_from_sources(sources, retrieved_chunks)
             }
         
         return {

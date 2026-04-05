@@ -35,38 +35,12 @@ body {
   background: #94a3b8;
 }
 
-/* PDF text highlighting: keep text readable */
-.react-pdf__Page__textContent .highlight {
-  background-color: rgba(255, 230, 0, 0.35);
-  color: inherit;
-  padding: 0 2px;
-  border-radius: 3px;
-  transition: background-color 0.2s ease;
+.react-pdf__Page__textContent {
+  z-index: 2;
+  opacity: 1 !important;
 }
 
-.react-pdf__Page__textContent .highlight:hover {
-  background-color: rgba(255, 200, 0, 0.4);
-}
-
-.react-pdf__Page__textContent .highlight-underline {
-  background: none;
-  color: inherit;
-  border-bottom: 3px solid rgba(255, 200, 0, 0.8);
-  border-radius: 2px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .react-pdf__Page__textContent .highlight {
-    background-color: rgba(255, 200, 0, 0.32);
-    color: inherit;
-  }
-
-  .react-pdf__Page__textContent .highlight:hover {
-    background-color: rgba(255, 200, 0, 0.38);
-  }
-
-  .react-pdf__Page__textContent .highlight-underline {
-    border-bottom-color: rgba(255, 190, 0, 0.78);
-    color: inherit;
-  }
+.react-pdf__Page__textContent {
+  opacity: 1;
+  color: transparent;
 }
