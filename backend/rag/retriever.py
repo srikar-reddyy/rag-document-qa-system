@@ -6,13 +6,272 @@ Retrieves relevant document chunks for a given query
 from typing import List, Dict
 import logging
 import re
+import json
 from .embedder import embed_text
-from .vectordb import query_documents, get_chunks_by_page
+from .vectordb import query_documents, get_chunks_by_page, get_document_chunks
 from .utils import cosine_similarity
 
 logger = logging.getLogger(__name__)
 
 PAGE_QUERY_REGEX = re.compile(r"\bpage(?:\s+number)?\s*(\d+)\b", re.IGNORECASE)
+
+SECTION_KEYWORDS = {
+    "conclusion": [
+        "conclusion",
+        "conclusions",
+        "future work",
+        "final remarks",
+        "closing remarks",
+        "summary",
+    ],
+    "results": [
+        "results",
+        "findings",
+        "evaluation",
+        "experimental results",
+        "experiments",
+    ],
+    "introduction": [
+        "introduction",
+        "intro",
+        "background",
+        "overview",
+    ],
+    "literature review": [
+        "literature review",
+        "related work",
+        "prior work",
+        "review of literature",
+        "state of the art",
+    ],
+    "methodology": [
+        "methodology",
+        "methods",
+        "method",
+        "approach",
+        "experimental setup",
+        "materials and methods",
+    ],
+}
+
+
+def _normalize_section_text(value: str) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().lower())
+
+
+def _section_aliases(section: str) -> List[str]:
+    aliases = SECTION_KEYWORDS.get(section, [section])
+    # Match longest aliases first for stable phrase detection.
+    return sorted(aliases, key=len, reverse=True)
+
+
+def detect_section_query(query: str) -> str | None:
+    normalized_query = _normalize_section_text(query)
+    if not normalized_query:
+        return None
+
+    alias_pairs = []
+    for section, aliases in SECTION_KEYWORDS.items():
+        for alias in aliases:
+            alias_pairs.append((section, alias))
+
+    alias_pairs.sort(key=lambda item: len(item[1]), reverse=True)
+
+    for section, alias in alias_pairs:
+        if alias in normalized_query:
+            return section
+
+    return None
+
+
+def _metadata_section(metadata: Dict) -> str:
+    normalized = _normalize_section_text(metadata.get("section_title_normalized", ""))
+    if normalized and normalized != "unknown":
+        return normalized
+
+    return _normalize_section_text(
+        metadata.get("section_title") or metadata.get("section") or ""
+    )
+
+
+def _metadata_doc_name(metadata: Dict) -> str:
+    return str(
+        metadata.get("doc_name")
+        or metadata.get("document_name")
+        or metadata.get("file_name")
+        or "Unknown"
+    )
+
+
+def _metadata_doc_key(metadata: Dict) -> str:
+    return str(
+        metadata.get("document_id")
+        or metadata.get("doc_id")
+        or _metadata_doc_name(metadata)
+    )
+
+
+def _chunk_matches_section(chunk: Dict, section: str) -> bool:
+    metadata = chunk.get("metadata", {}) or {}
+    aliases = _section_aliases(section)
+
+    section_value = _metadata_section(metadata)
+    if section_value:
+        if section_value == section:
+            return True
+        for alias in aliases:
+            if alias in section_value:
+                return True
+
+    text = (chunk.get("text") or "").strip()
+    first_line = text.splitlines()[0] if text else ""
+    normalized_first_line = _normalize_section_text(first_line)
+    for alias in aliases:
+        if normalized_first_line == alias:
+            return True
+        if normalized_first_line.startswith(f"{alias} "):
+            return True
+        if normalized_first_line.startswith(f"{alias}:"):
+            return True
+        if normalized_first_line.startswith(f"{alias}-"):
+            return True
+
+    return False
+
+
+def _chunk_section_heading(chunk: Dict) -> str | None:
+    metadata = chunk.get("metadata", {}) or {}
+
+    section_value = _metadata_section(metadata)
+    if section_value and section_value != "unknown":
+        return section_value
+
+    text = (chunk.get("text") or "").strip()
+    if not text:
+        return None
+
+    first_line = _normalize_section_text(text.splitlines()[0])
+    if not first_line:
+        return None
+
+    for section, aliases in SECTION_KEYWORDS.items():
+        for alias in _section_aliases(section):
+            if first_line == alias:
+                return section
+            if first_line.startswith(f"{alias} "):
+                return section
+            if first_line.startswith(f"{alias}:"):
+                return section
+            if first_line.startswith(f"{alias}-"):
+                return section
+
+    return None
+
+
+def _chunk_sort_key(chunk: Dict) -> tuple:
+    metadata = chunk.get("metadata", {}) or {}
+    return (
+        _metadata_doc_key(metadata),
+        _to_int(metadata.get("page", metadata.get("page_number")), 1) or 1,
+        _to_int(metadata.get("chunk_index"), 0) or 0,
+    )
+
+
+def _build_retrieved_chunk(
+    chunk: Dict,
+    base_score: float = 1.0,
+    mode: str | None = None,
+    section: str | None = None,
+) -> Dict:
+    metadata = chunk.get("metadata", {}) or {}
+    doc_text = chunk.get("text", "")
+    page = _to_int(metadata.get("page", metadata.get("page_number")), 1) or 1
+
+    payload = {
+        "text": doc_text,
+        "metadata": metadata,
+        "relevance_score": float(base_score),
+        "rerank_score": float(base_score),
+        "score": float(base_score),
+        "chunk_id": metadata.get("chunk_id"),
+        "doc_name": _metadata_doc_name(metadata),
+        "page": page,
+        "char_start": _to_int(metadata.get("char_start")),
+        "char_end": _to_int(metadata.get("char_end")),
+        "bbox": _parse_bbox(metadata.get("bbox")),
+        "words": chunk.get("words") or _parse_words(metadata.get("words_json")),
+    }
+
+    if mode:
+        payload["mode"] = mode
+    if section:
+        payload["section"] = section
+
+    return payload
+
+
+def _collect_contiguous_section_chunks(
+    all_chunks: List[Dict],
+    section: str,
+    max_return: int = 120,
+) -> List[Dict]:
+    if not all_chunks:
+        return []
+
+    ordered_chunks = sorted(all_chunks, key=_chunk_sort_key)
+    visited_indices = set()
+    section_chunks: List[Dict] = []
+
+    for idx, chunk in enumerate(ordered_chunks):
+        if idx in visited_indices:
+            continue
+        if not _chunk_matches_section(chunk, section):
+            continue
+
+        metadata = chunk.get("metadata", {}) or {}
+        doc_key = _metadata_doc_key(metadata)
+
+        for cursor in range(idx, len(ordered_chunks)):
+            candidate = ordered_chunks[cursor]
+            candidate_meta = candidate.get("metadata", {}) or {}
+
+            if _metadata_doc_key(candidate_meta) != doc_key:
+                break
+
+            heading = _chunk_section_heading(candidate)
+            if cursor > idx and heading and heading != section:
+                break
+
+            visited_indices.add(cursor)
+
+            score = 1.1 if heading == section else 1.0
+            section_chunks.append(
+                _build_retrieved_chunk(
+                    candidate,
+                    base_score=score,
+                    mode="section",
+                    section=section,
+                )
+            )
+
+            if len(section_chunks) >= max_return:
+                return section_chunks
+
+    return section_chunks
+
+
+def _debug_retrieval(query: str, section: str | None, mode: str, chunks: List[Dict]) -> None:
+    print("\n[RETRIEVAL DEBUG]")
+    print("Query:", query)
+    print("Mode:", mode)
+    print("Detected Section:", section or "None")
+
+    for chunk in chunks or []:
+        print({
+            "chunk_id": chunk.get("chunk_id") or (chunk.get("metadata", {}) or {}).get("chunk_id"),
+            "section": (chunk.get("metadata", {}) or {}).get("section_title"),
+            "preview": (chunk.get("text") or "")[:100],
+        })
 
 
 def extract_page_number(query: str) -> int | None:
@@ -68,6 +327,47 @@ def _parse_bbox(value):
     return None
 
 
+def _parse_words(value):
+    if not value:
+        return []
+
+    try:
+        entries = json.loads(value) if isinstance(value, str) else value
+    except Exception:
+        return []
+
+    if not isinstance(entries, list):
+        return []
+
+    words = []
+    for item in entries:
+        if not isinstance(item, dict):
+            continue
+
+        bbox = item.get("bbox")
+        if not isinstance(bbox, (list, tuple)) or len(bbox) < 4:
+            continue
+
+        try:
+            char_start = int(item.get("char_start"))
+            char_end = int(item.get("char_end"))
+            box = [float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])]
+        except Exception:
+            continue
+
+        if char_end <= char_start:
+            continue
+
+        words.append({
+            "text": str(item.get("text") or ""),
+            "char_start": char_start,
+            "char_end": char_end,
+            "bbox": box,
+        })
+
+    return words
+
+
 def retrieve(
     query: str,
     top_k: int = 5,
@@ -94,6 +394,8 @@ def retrieve(
         
         logger.info(f"Filtering by {len(selected_document_ids)} selected document(s)")
 
+        detected_section = detect_section_query(query)
+
         query_page_number = page_number or extract_page_number(query)
 
         # Page-aware retrieval path (bypass semantic vector search)
@@ -107,21 +409,10 @@ def retrieve(
 
             retrieved_chunks = []
             for chunk in page_chunks:
-                metadata = chunk.get("metadata", {})
-                doc_text = chunk.get("text", "")
-                page = _to_int(metadata.get("page", metadata.get("page_number")), query_page_number) or query_page_number
-                retrieved_chunks.append({
-                    "text": doc_text,
-                    "metadata": metadata,
-                    "relevance_score": 1.0,
-                    "rerank_score": 1.0,
-                    "score": 1.0,
-                    "doc_name": metadata.get("doc_name", metadata.get("document_name", metadata.get("file_name", "Unknown"))),
-                    "page": page,
-                    "char_start": _to_int(metadata.get("char_start")),
-                    "char_end": _to_int(metadata.get("char_end")),
-                    "bbox": _parse_bbox(metadata.get("bbox")),
-                })
+                formatted = _build_retrieved_chunk(chunk, base_score=1.0, mode="page")
+                if formatted.get("page") is None:
+                    formatted["page"] = query_page_number
+                retrieved_chunks.append(formatted)
 
             if not retrieved_chunks:
                 print("[FALLBACK] No chunks for page — retrieving nearby pages")
@@ -134,24 +425,37 @@ def retrieve(
                     )
 
                     for chunk in nearby_chunks:
-                        metadata = chunk.get("metadata", {})
-                        doc_text = chunk.get("text", "")
-                        page = _to_int(metadata.get("page", metadata.get("page_number")), nearby_page) or nearby_page
-                        retrieved_chunks.append({
-                            "text": doc_text,
-                            "metadata": metadata,
-                            "relevance_score": 0.8,
-                            "rerank_score": 0.8,
-                            "score": 0.8,
-                            "doc_name": metadata.get("doc_name", metadata.get("document_name", metadata.get("file_name", "Unknown"))),
-                            "page": page,
-                            "char_start": _to_int(metadata.get("char_start")),
-                            "char_end": _to_int(metadata.get("char_end")),
-                            "bbox": _parse_bbox(metadata.get("bbox")),
-                        })
+                        formatted = _build_retrieved_chunk(chunk, base_score=0.8, mode="page")
+                        if formatted.get("page") is None:
+                            formatted["page"] = nearby_page
+                        retrieved_chunks.append(formatted)
 
             logger.info(f"Retrieved {len(retrieved_chunks)} chunks via page filter")
-            return retrieved_chunks[:top_k]
+            retrieved_chunks = retrieved_chunks[:top_k]
+            _debug_retrieval(query, detected_section, mode="page", chunks=retrieved_chunks)
+            return retrieved_chunks
+
+        # Section-aware retrieval path (deterministic heading navigation)
+        if detected_section:
+            print(f"[SECTION QUERY DETECTED] {detected_section}")
+
+            all_chunks = get_document_chunks(
+                selected_document_ids,
+                max_chunks_per_document=max(1200, top_k * 120),
+            )
+
+            section_chunks = _collect_contiguous_section_chunks(
+                all_chunks=all_chunks,
+                section=detected_section,
+                max_return=max(120, top_k * 12),
+            )
+
+            if section_chunks:
+                print(f"[SECTION MATCH] Returning {len(section_chunks)} section chunk(s)")
+                _debug_retrieval(query, detected_section, mode="section", chunks=section_chunks)
+                return section_chunks
+
+            print("[SECTION MATCH] No section chunks found - using embedding fallback")
 
         # Semantic retrieval path
         logger.info(f"Generating embedding for query: {query[:100]}...")
@@ -175,6 +479,7 @@ def retrieve(
             logger.warning("❌ No relevant documents found in ChromaDB")
             logger.warning(f"  - Selected document IDs: {selected_document_ids}")
             logger.warning(f"  - Query: {query[:100]}...")
+            _debug_retrieval(query, detected_section, mode="semantic-empty", chunks=[])
             return []
         
         # Format results (broad candidates)
@@ -191,11 +496,13 @@ def retrieve(
                 "metadata": metadata,
                 "relevance_score": score,  # ANN similarity
                 "score": score,
+                "chunk_id": metadata.get("chunk_id"),
                 "doc_name": metadata.get("doc_name", metadata.get("document_name", metadata.get("file_name", "Unknown"))),
                 "page": page,
                 "char_start": _to_int(metadata.get("char_start")),
                 "char_end": _to_int(metadata.get("char_end")),
                 "bbox": _parse_bbox(metadata.get("bbox")),
+                "words": _parse_words(metadata.get("words_json")),
             })
 
         page_num = extract_page_number(query)
@@ -239,6 +546,7 @@ def retrieve(
         retrieved_chunks = retrieved_chunks[:top_k]
         
         logger.info(f"Retrieved {len(retrieved_chunks)} relevant chunks")
+        _debug_retrieval(query, detected_section, mode="semantic", chunks=retrieved_chunks)
         return retrieved_chunks
     
     except Exception as e:

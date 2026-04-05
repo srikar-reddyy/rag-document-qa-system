@@ -9,8 +9,8 @@ from rag.pipeline import rag_query, classify_query, run_count_pipeline
 from rag.vectordb import get_all_document_metadata
 from rag.vectordb import get_document_chunks
 from rag.retriever import retrieve, extract_sources
-from rag.generator import generate_answer_stream, generate_answer
-from rag.pipeline import build_dynamic_sources, extract_highlights_from_sources
+from rag.generator import generate_answer_stream, generate_answer, generate_citations
+from rag.pipeline import build_sources_from_citations, extract_highlights_from_sources
 from services import get_chat_service
 import logging
 import re
@@ -387,9 +387,9 @@ async def chat_stream(request: ChatRequest):
 
             final_answer = "".join(answer_parts).strip() or "No answer generated."
             try:
-                dynamic_sources = await build_dynamic_sources(request.message, final_answer, retrieved_chunks, max_sources=5)
-                sources = dynamic_sources or sources
-                highlights = extract_highlights_from_sources(sources)
+                citations = await generate_citations(request.message, final_answer, retrieved_chunks)
+                sources = build_sources_from_citations(citations, retrieved_chunks, max_sources=5)
+                highlights = extract_highlights_from_sources(sources, retrieved_chunks)
             except Exception as source_error:
                 logger.warning(f"Streaming post-source attribution failed: {str(source_error)}")
                 highlights = []

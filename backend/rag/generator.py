@@ -521,6 +521,188 @@ def _build_image_repair_prompt(query: str, context: str, reason: str) -> str:
     )
 
 
+def _resolve_chunk_id(chunk: Dict, idx: int) -> str:
+    metadata = chunk.get("metadata", {}) or {}
+    chunk_id = chunk.get("chunk_id") or metadata.get("chunk_id")
+    if chunk_id:
+        return str(chunk_id)
+
+    doc_name = (
+        chunk.get("doc_name")
+        or metadata.get("doc_name")
+        or metadata.get("document_name")
+        or metadata.get("file_name")
+        or "Unknown"
+    )
+    try:
+        page = int(metadata.get("page", metadata.get("page_number", chunk.get("page", 1))) or 1)
+    except Exception:
+        page = 1
+    return f"{doc_name}::p{page}::idx{idx}"
+
+
+def _build_citation_context(retrieved_chunks: List[Dict]) -> str:
+    context_blocks: List[str] = []
+
+    for idx, chunk in enumerate(retrieved_chunks or [], start=1):
+        metadata = chunk.get("metadata", {}) or {}
+        chunk_id = _resolve_chunk_id(chunk, idx)
+        doc_name = (
+            chunk.get("doc_name")
+            or metadata.get("doc_name")
+            or metadata.get("document_name")
+            or metadata.get("file_name")
+            or "Unknown"
+        )
+        try:
+            page = int(metadata.get("page", metadata.get("page_number", chunk.get("page", 1))) or 1)
+        except Exception:
+            page = 1
+        text = (chunk.get("text") or "").strip()
+        if not text:
+            continue
+
+        # Keep chunk text bounded to avoid exceeding model context in citation extraction.
+        bounded = text[:1200]
+        context_blocks.append(
+            f"CHUNK_ID: {chunk_id}\nDOC: {doc_name}\nPAGE: {page}\nTEXT:\n{bounded}"
+        )
+
+    return "\n\n-----\n\n".join(context_blocks)
+
+
+def _extract_json_block(raw_text: str) -> str | None:
+    if not raw_text:
+        return None
+
+    cleaned = raw_text.strip()
+    if not cleaned:
+        return None
+
+    if cleaned.startswith("```"):
+        match = re.search(r"```(?:json)?\s*(\{.*\})\s*```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+
+    first_brace = cleaned.find("{")
+    last_brace = cleaned.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        return cleaned[first_brace:last_brace + 1].strip()
+
+    return None
+
+
+def _sanitize_citations(citations: object) -> List[Dict]:
+    if not isinstance(citations, list):
+        return []
+
+    normalized: List[Dict] = []
+    seen = set()
+    for item in citations:
+        if not isinstance(item, dict):
+            continue
+
+        chunk_id = str(item.get("chunk_id") or "").strip()
+        span = str(item.get("span") or "").strip()
+        if not chunk_id or not span:
+            continue
+
+        key = (chunk_id, span)
+        if key in seen:
+            continue
+
+        seen.add(key)
+        normalized.append({
+            "chunk_id": chunk_id,
+            "span": span,
+        })
+
+    return normalized
+
+
+def _parse_structured_citation_response(raw_text: str, fallback_answer: str) -> Dict:
+    payload = {
+        "answer": (fallback_answer or "").strip(),
+        "citations": [],
+    }
+
+    json_blob = _extract_json_block(raw_text)
+    if not json_blob:
+        return payload
+
+    try:
+        parsed = json.loads(json_blob)
+    except Exception:
+        return payload
+
+    if not isinstance(parsed, dict):
+        return payload
+
+    answer = str(parsed.get("answer") or "").strip()
+    payload["answer"] = answer or payload["answer"]
+    payload["citations"] = _sanitize_citations(parsed.get("citations"))
+    return payload
+
+
+def build_citation_prompt(query: str, answer: str, retrieved_chunks: List[Dict]) -> str:
+    chunk_context = _build_citation_context(retrieved_chunks)
+
+    return f"""You are a strict citation extraction engine.
+
+Return ONLY valid JSON with this exact structure:
+{{
+  "answer": "...",
+  "citations": [
+    {{
+      "chunk_id": "exact_chunk_id",
+      "span": "exact text from that chunk"
+    }}
+  ]
+}}
+
+Rules:
+- Keep "answer" exactly equal to ANSWER_TO_CITE.
+- Use ONLY chunk IDs listed in CHUNKS.
+- Every "span" must be an exact contiguous substring from that same chunk text.
+- Never combine text from multiple chunks.
+- If no exact span is possible, return an empty citations array.
+- Do not output markdown, comments, or extra keys.
+
+USER_QUERY:
+{query}
+
+ANSWER_TO_CITE:
+{answer}
+
+CHUNKS:
+{chunk_context}
+""".strip()
+
+
+async def generate_citations(query: str, answer: str, retrieved_chunks: List[Dict]) -> List[Dict]:
+    if not answer or not answer.strip() or not retrieved_chunks:
+        return []
+
+    prompt = build_citation_prompt(query, answer, retrieved_chunks)
+    model_name = _select_model_for_query(query, retrieved_chunks)
+
+    try:
+        raw = await call_llm_api(
+            prompt,
+            model=model_name,
+            max_tokens=700,
+            temperature=0.0,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        parsed = _parse_structured_citation_response(raw, fallback_answer=answer)
+        citations = parsed.get("citations") or []
+        logger.info("Strict citation extraction | citations=%s", len(citations))
+        return citations
+    except Exception as e:
+        logger.warning(f"Strict citation extraction failed: {str(e)}")
+        return []
+
+
 def build_rag_prompt(query: str, context: str, requested_points: int | None = None) -> str:
     """
     Build a RAG prompt with retrieved context.
@@ -911,12 +1093,15 @@ Document excerpts:
                 valid, reason = _validate_numbered_list(answer, requested_points)
                 retries += 1
         
+        citations = await generate_citations(query, answer, retrieved_chunks)
+
         # Extract sources
         sources = extract_sources(retrieved_chunks)
         
         return {
             "answer": answer.strip(),
-            "sources": sources
+            "sources": sources,
+            "citations": citations,
         }
     
     except Exception as e:
@@ -927,7 +1112,8 @@ Document excerpts:
 
         return {
             "answer": "Failed to process image. Please try again.",
-            "sources": extract_sources(retrieved_chunks)
+            "sources": extract_sources(retrieved_chunks),
+            "citations": [],
         }
 
 

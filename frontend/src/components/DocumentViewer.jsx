@@ -31,7 +31,7 @@ const DocumentViewer = ({ file, highlightState }) => {
       <PDFViewer
         file={file}
         activePage={highlightState?.activePage}
-        activeHighlightText={highlightState?.activeHighlightText}
+        activeBoxes={highlightState?.activeBoxes}
         highlightTrigger={highlightState?.trigger}
       />
     );

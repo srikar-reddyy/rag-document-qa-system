@@ -16,6 +16,15 @@ HEADING_PATTERNS = [
     r"^(subject|source|title|document|page|section)\s*:\s*.*$",
 ]
 
+PUBLICATION_NOISE_PATTERNS = [
+    r"\bdoi\s*:",
+    r"\bissn\b",
+    r"\bwww\.",
+    r"\b\d+\s*\|\s*page\b",
+    r"\bdate\s+of\s+submission\b",
+    r"\bdate\s+of\s+acceptance\b",
+]
+
 
 def split_sentences(text: str) -> List[str]:
     if not text:
@@ -41,6 +50,10 @@ def is_noisy_line(line: str) -> bool:
 
     for pattern in HEADING_PATTERNS:
         if re.match(pattern, value, re.IGNORECASE):
+            return True
+
+    for pattern in PUBLICATION_NOISE_PATTERNS:
+        if re.search(pattern, value, re.IGNORECASE):
             return True
 
     # OCR fragments with very low alphabetic ratio
