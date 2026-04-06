@@ -247,4 +247,38 @@ export const uploadDocuments = async (files) => {
   }
 };
 
+/**
+ * Build viewer URL for a stored document.
+ *
+ * @param {string} documentId
+ * @returns {string}
+ */
+export const getDocumentFileUrl = (documentId) => {
+  return `${API_BASE_URL}/upload/documents/${documentId}/file`;
+};
+
+/**
+ * Compare selected documents for a focused query.
+ *
+ * @param {Array<string>} docIds
+ * @param {string} query
+ * @returns {Promise<Object>}
+ */
+export const compareDocuments = async (docIds, query) => {
+  try {
+    const response = await apiClient.post('/compare', {
+      doc_ids: docIds,
+      query,
+    });
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      throw new Error(error.response.data.detail || 'Failed to compare documents');
+    } else if (error.request) {
+      throw new Error('Cannot connect to backend. Make sure the server is running.');
+    }
+    throw new Error('An unexpected error occurred while comparing documents');
+  }
+};
+
 export default apiClient;

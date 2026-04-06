@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 // Removed logo icon import
 import useResizablePanels from './hooks/useResizablePanels';
 import Sidebar from './components/Sidebar';
@@ -179,6 +180,12 @@ function App() {
             </div>
             
             <div className="flex items-center space-x-3">
+              <Link
+                to="/compare"
+                className="px-3 py-1.5 text-sm font-semibold text-amber-800 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
+              >
+                Compare Mode
+              </Link>
               
               <div className="text-xs text-gray-500">
                 {uploadedFiles.length} {uploadedFiles.length === 1 ? 'document' : 'documents'}

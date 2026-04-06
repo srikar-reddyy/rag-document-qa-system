@@ -6,7 +6,7 @@ Phase 1: Chat + Document Upload
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import API_TITLE, API_VERSION, API_DESCRIPTION
-from routes import chat, upload, debug
+from routes import chat, upload, debug, compare
 from dotenv import load_dotenv
 import logging
 
@@ -37,6 +37,7 @@ app.add_middleware(
 app.include_router(chat.router)
 app.include_router(upload.router)
 app.include_router(debug.router)
+app.include_router(compare.router)
 
 
 @app.on_event("startup")
@@ -70,6 +71,7 @@ async def root():
         "message": "Multi-Document Reasoning Engine API - Phase 1",
         "endpoints": {
             "chat": "/chat",
+            "compare": "/compare",
             "upload": "/upload",
             "docs": "/docs"
         }
