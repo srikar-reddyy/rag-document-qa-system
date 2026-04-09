@@ -1,86 +1,101 @@
-﻿# 📄 RAG Document QA System
+﻿# 🚀 RAG Document QA System
 
-A Retrieval-Augmented Generation (RAG) based system for querying and reasoning over multiple documents using Large Language Models (LLMs), embeddings, and vector search.
-
----
-
-## 🚀 Features
-
-* 📂 Upload and process multiple documents (PDFs)
-* 🔍 Semantic search using embeddings
-* 🧠 Retrieval-Augmented Generation (RAG) pipeline
-* ⚡ FastAPI backend for scalable APIs
-* 🌐 Frontend interface for interaction
-* 📊 Supports multi-document querying and comparison
+A production-style **Retrieval-Augmented Generation (RAG)** system that enables intelligent querying and reasoning over multiple documents using LLMs, embeddings, and vector search.
 
 ---
 
-## 🏗️ Architecture
+## ✨ Overview
 
-1. **Document Ingestion**
+This project demonstrates how to build an end-to-end RAG pipeline that:
 
-   * Upload PDFs
-   * Extract text and split into chunks
+* Ingests documents (PDFs)
+* Converts them into vector embeddings
+* Stores them in a vector database
+* Retrieves relevant context based on queries
+* Generates accurate answers using an LLM
 
-2. **Embedding Generation**
+---
 
-   * Convert text chunks into vector embeddings
+## 🧠 Key Highlights
 
-3. **Vector Storage**
+* 🔍 Semantic search over documents using embeddings
+* 📄 Multi-document support with contextual understanding
+* ⚡ FastAPI backend for scalable API handling
+* 🧩 Modular architecture (routes, services, pipelines)
+* 🧠 LLM-powered responses with contextual grounding
+* 🔄 Extendable for real-world production use cases
 
-   * Store embeddings in a vector database (ChromaDB)
+---
 
-4. **Retrieval**
+## 🏗️ System Architecture
 
-   * Retrieve relevant chunks based on user query
-
-5. **Generation**
-
-   * Pass retrieved context + query to LLM for answer generation
+```
+User Query
+     ↓
+Embedding Model
+     ↓
+Vector Database (ChromaDB)
+     ↓
+Relevant Context Retrieval
+     ↓
+LLM (Generation)
+     ↓
+Final Answer
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-* **Backend**: FastAPI, Python
-* **Frontend**: (React / Vite or similar)
-* **LLM & AI**: OpenAI / Transformers
-* **Vector DB**: ChromaDB
-* **Libraries**: LangChain, Sentence Transformers, PyPDF
+| Category         | Tools / Libraries                |
+| ---------------- | -------------------------------- |
+| Backend          | FastAPI, Python                  |
+| AI/ML            | LangChain, Sentence Transformers |
+| LLM              | OpenAI / Transformers            |
+| Vector Store     | ChromaDB                         |
+| Document Parsing | PyPDF                            |
+| Frontend         | React (Vite)                     |
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Setup Instructions
 
-### 1. Clone the repository
+### 🔹 Clone Repository
 
 ```bash
-git clone https://github.com/your-username/rag-document-qa-system.git
+git clone https://github.com/srikar-reddyy/rag-document-qa-system.git
 cd rag-document-qa-system
 ```
 
-### 2. Backend setup
+---
+
+### 🔹 Backend Setup
 
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 3. Run backend
+> ⚠️ If installation fails, manually install missing packages:
+
+```bash
+pip install pypdf PyMuPDF
+```
+
+---
+
+### 🔹 Run Backend Server
 
 ```bash
 uvicorn main:app --reload
 ```
 
-Backend will run on:
-
-```
-http://127.0.0.1:8000
-```
+Access API:
+👉 http://127.0.0.1:8000/docs
 
 ---
 
-## 🌐 Frontend Setup
+### 🔹 Frontend Setup
 
 ```bash
 cd frontend
@@ -90,9 +105,9 @@ npm run dev
 
 ---
 
-## 🔑 Environment Variables
+## 🔐 Environment Variables
 
-Create a `.env` file in `backend` folder:
+Create a `.env` file inside `backend`:
 
 ```
 OPENAI_API_KEY=your_api_key_here
@@ -100,40 +115,53 @@ OPENAI_API_KEY=your_api_key_here
 
 ---
 
-## 📌 API Docs
+## 🧪 How It Works
 
-Once backend is running, open:
-
-```
-http://127.0.0.1:8000/docs
-```
+1. Upload documents (PDFs)
+2. System extracts and chunks text
+3. Converts chunks into embeddings
+4. Stores vectors in ChromaDB
+5. User submits a query
+6. Relevant chunks are retrieved
+7. LLM generates context-aware answer
 
 ---
 
-## 🧪 Example Workflow
+## 📌 Example Use Cases
 
-1. Upload a document
-2. Ask a question
-3. System retrieves relevant chunks
-4. LLM generates contextual answer
+* Document-based Q&A systems
+* Research assistants
+* Knowledge base search
+* Enterprise document intelligence
 
 ---
 
 ## 📈 Future Improvements
 
-* Add authentication
-* Improve chunking strategy
-* Add streaming responses
-* Deploy on cloud (AWS / GCP)
+* Add authentication & user sessions
+* Streaming responses (real-time answers)
+* UI improvements and chat interface
+* Cloud deployment (AWS / GCP / Docker)
 
 ---
 
-## 🙌 Author
+## 👨‍💻 Author
 
 **Srikar Reddy**
 
 ---
 
-## ⭐ Note
+## 🌟 Why This Project Matters
 
-This project demonstrates practical implementation of RAG pipelines using modern LLM tools and frameworks.
+This project showcases practical understanding of:
+
+* Retrieval-Augmented Generation (RAG)
+* LLM integration
+* Vector databases
+* Scalable backend development
+
+---
+
+## ⭐ If you find this useful
+
+Give it a ⭐ on GitHub!
