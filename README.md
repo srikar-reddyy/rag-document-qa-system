@@ -1,70 +1,139 @@
-﻿# 📚 RAG-Multidocument
+﻿# 📄 RAG Document QA System
 
-A powerful, full-stack application for engaging with and analyzing multiple documents using Retrieval-Augmented Generation (RAG). 
-Upload files (PDFs, Text, etc.), ask insightful questions across your entire document base, and compare specific chunks and references directly!
+A Retrieval-Augmented Generation (RAG) based system for querying and reasoning over multiple documents using Large Language Models (LLMs), embeddings, and vector search.
 
-## ✨ Features
+---
 
-- **Multi-Document Chat:** Ask questions and get answers synthesized from all your uploaded documents.
-- **Intelligent Chunking:** Advanced text splitting algorithms to retain semantic context.
-- **Compare Pipeline:** Analyze and compare different documents side-by-side in real time. 
-- **100% Local Inference Support:** Integrated with **Ollama** for completely private, offline, and secure LLM generation.
-- **Scalable Vector Database:** Uses **ChromaDB** for lightning-fast embeddings & retrieval.
-- **Interactive Interface:** Clean React UI with resizable panels, PDF/Text viewers, and integrated document highlights.
+## 🚀 Features
+
+* 📂 Upload and process multiple documents (PDFs)
+* 🔍 Semantic search using embeddings
+* 🧠 Retrieval-Augmented Generation (RAG) pipeline
+* ⚡ FastAPI backend for scalable APIs
+* 🌐 Frontend interface for interaction
+* 📊 Supports multi-document querying and comparison
+
+---
+
+## 🏗️ Architecture
+
+1. **Document Ingestion**
+
+   * Upload PDFs
+   * Extract text and split into chunks
+
+2. **Embedding Generation**
+
+   * Convert text chunks into vector embeddings
+
+3. **Vector Storage**
+
+   * Store embeddings in a vector database (ChromaDB)
+
+4. **Retrieval**
+
+   * Retrieve relevant chunks based on user query
+
+5. **Generation**
+
+   * Pass retrieved context + query to LLM for answer generation
+
+---
 
 ## 🛠️ Tech Stack
 
-**Frontend:**
-- React.js + Tailwind CSS
-- Resizable Panels & Custom PDF Viewers
+* **Backend**: FastAPI, Python
+* **Frontend**: (React / Vite or similar)
+* **LLM & AI**: OpenAI / Transformers
+* **Vector DB**: ChromaDB
+* **Libraries**: LangChain, Sentence Transformers, PyPDF
 
-**Backend:**
-- FastAPI (Python)
-- Ollama (LLM Integration)
-- ChromaDB (Vector Database)
-- Advanced text parsing, chunking, and search pipelines
+---
 
-## 🚀 Getting Started
+## ⚙️ Installation
 
-### Prerequisites
-- **Python 3.9+**
-- **Node.js (v16+) & npm**
-- **[Ollama](https://ollama.ai/)** (downloaded and running locally)
+### 1. Clone the repository
 
-### 1️⃣ Backend Setup
-Open a terminal and navigate to the backend specific directory.
-`ash
+```bash
+git clone https://github.com/your-username/rag-document-qa-system.git
+cd rag-document-qa-system
+```
+
+### 2. Backend setup
+
+```bash
 cd backend
-
-# Create a virtual environment (recommended)
-python -m venv venv
-venv\Scripts\activate   # (Windows)
-# source venv/bin/activate # (Mac/Linux)
-
-# Install requirements
 pip install -r requirements.txt
+```
 
-# Start the API server
-python -m uvicorn main:app --reload
-`
-*API runs at http://localhost:8000*
+### 3. Run backend
 
-### 2️⃣ Frontend Setup
-Open a separate terminal and navigate to the frontend directory.
-`ash
+```bash
+uvicorn main:app --reload
+```
+
+Backend will run on:
+
+```
+http://127.0.0.1:8000
+```
+
+---
+
+## 🌐 Frontend Setup
+
+```bash
 cd frontend
-
-# Install Node modules
 npm install
+npm run dev
+```
 
-# Start the UI
-npm start
-`
-*App UI runs at http://localhost:3000*
+---
 
-## 📂 Project Structure Overview
+## 🔑 Environment Variables
 
-- ackend/rag/ - Core retrieval logic for embedding, chunking, and vectors.
-- ackend/routes/ - FastAPI endpoints for chat, comparison, file upload, and debugging.
-- rontend/src/components/ - Interactive chat components, file uploaders, document viewer panes.
-- rontend/src/pages/ - Parent application routing views.
+Create a `.env` file in `backend` folder:
+
+```
+OPENAI_API_KEY=your_api_key_here
+```
+
+---
+
+## 📌 API Docs
+
+Once backend is running, open:
+
+```
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## 🧪 Example Workflow
+
+1. Upload a document
+2. Ask a question
+3. System retrieves relevant chunks
+4. LLM generates contextual answer
+
+---
+
+## 📈 Future Improvements
+
+* Add authentication
+* Improve chunking strategy
+* Add streaming responses
+* Deploy on cloud (AWS / GCP)
+
+---
+
+## 🙌 Author
+
+**Srikar Reddy**
+
+---
+
+## ⭐ Note
+
+This project demonstrates practical implementation of RAG pipelines using modern LLM tools and frameworks.
