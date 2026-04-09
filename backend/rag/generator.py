@@ -776,7 +776,8 @@ async def call_llm_api(
     model_name = model or os.getenv("OPENROUTER_MODEL", "qwen/qwen-2.5-7b-instruct")
 
     if not api_key:
-        raise Exception("OPENROUTER_API_KEY not set")
+        logger.warning("OPENROUTER_API_KEY not set. Returning a mock answer.")
+        return "Mock Answer: In a production environment, you would need to set `OPENROUTER_API_KEY` in the backend environment. For now, since the actual LLM API request failed or was not set up, I stand in as your friendly mock response."
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
@@ -860,7 +861,10 @@ async def stream_llm_api(
     model_name = model or os.getenv("OPENROUTER_MODEL", "qwen/qwen-2.5-7b-instruct")
 
     if not api_key:
-        raise Exception("OPENROUTER_API_KEY not set")
+        yield "Mock Answer: You need to set `OPENROUTER_API_KEY` in your environment "
+        yield "to get real AI answers. "
+        yield "For now, here is your simulated response stream!"
+        return
 
     payload = {
         "model": model_name,
@@ -1021,7 +1025,7 @@ async def generate_answer(query: str, retrieved_chunks: List[Dict]) -> Dict:
                     messages=messages,
                 )
                 if not answer or not answer.strip():
-                    answer = "Failed to process image. Please try again."
+                    answer = f"LLM Error: {str(vision_error)}"
         else:
             print("[ROUTING] Using TEXT model (OpenRouter)")
             answer = await call_llm_api(
@@ -1111,7 +1115,7 @@ Document excerpts:
         from .retriever import extract_sources
 
         return {
-            "answer": "Failed to process image. Please try again.",
+            "answer": f"Backend Error: {str(e)}\n\n(If you haven't set OPENROUTER_API_KEY, please add it to backend/.env)",
             "sources": extract_sources(retrieved_chunks),
             "citations": [],
         }

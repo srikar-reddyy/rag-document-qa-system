@@ -97,20 +97,24 @@ def get_tokenizer():
     Lazily initialize tokenizer used by embedding model family for accurate token counts.
     """
     global _tokenizer
+    if AutoTokenizer is None:
+        return None
+        
     if _tokenizer is None:
-        if AutoTokenizer is None:
-            raise RuntimeError("transformers is not installed. Install it to enable token-accurate chunking.")
         _tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
     return _tokenizer
 
 
 def count_tokens(text: str) -> int:
     """
-    Count tokens using the real tokenizer (not char approximation).
+    Count tokens using the real tokenizer (if available), or char approximation.
     """
     if not text or not text.strip():
         return 0
     tokenizer = get_tokenizer()
+    if tokenizer is None:
+        # Fallback approximation: 1 token ~= 4 chars typically
+        return len(text) // 4
     return len(tokenizer.encode(text, add_special_tokens=False))
 
 

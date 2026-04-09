@@ -19,6 +19,36 @@
           "page": 1
         }
       ]
+    },
+    {
+      "role": "user",
+      "content": "who is srikar",
+      "timestamp": "2026-04-09T17:16:11.346873"
+    },
+    {
+      "role": "assistant",
+      "content": "Failed to process image. Please try again.",
+      "timestamp": "2026-04-09T17:16:11.426120"
+    },
+    {
+      "role": "user",
+      "content": "who is srikar",
+      "timestamp": "2026-04-09T17:16:24.164788"
+    },
+    {
+      "role": "assistant",
+      "content": "Failed to process image. Please try again.",
+      "timestamp": "2026-04-09T17:16:24.301780"
+    },
+    {
+      "role": "user",
+      "content": "who is srikar",
+      "timestamp": "2026-04-09T17:39:04.252652"
+    },
+    {
+      "role": "assistant",
+      "content": "Mock Answer: You need to set `OPENROUTER_API_KEY` in your environment to get real AI answers. For now, here is your simulated response stream!",
+      "timestamp": "2026-04-09T17:39:04.694041"
     }
   ]
 }
